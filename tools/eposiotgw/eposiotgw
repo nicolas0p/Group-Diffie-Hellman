@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+
+# To get an unencrypted PEM (without passphrase):
+# openssl rsa -in certificate.pem -out certificate_unencrypted.pem
+
+import os
+import sys
+import time
+import serial
+import argparse
+import requests
+
+parser = argparse.ArgumentParser(description='EPOS Serial->IoT Gateway')
+parser.add_argument('-d','--dev', help='EPOSMote III device descriptor file', default='/dev/ttyUSB0')
+parser.add_argument('-t','--timeout', help='Timeout for reading from mote', default=600)
+parser.add_argument('-u','--url', help='Post URL', default='http://iot.ufsc.br/api/put.php')
+parser.add_argument('-c','--certificate', help='Your PEM certificate', required=True)
+parser.add_argument('-s','--server_certificate', help='Server verification certificate', default='ufsc_ca.crt')
+args = vars(parser.parse_args())
+
+DEV = args['dev']
+TIMEOUT = int(args['timeout'])
+URL = args['url']
+MY_CERTIFICATE = args['certificate']
+SERVER_CERTIFICATE = args['server_certificate']
+
+def init_mote():
+    global DEV
+    global TIMEOUT
+
+    ok = False
+    while not ok:
+        try:
+            print("Waiting for", DEV, "to appear")
+            while not os.path.exists(DEV) or not os.access(DEV, os.W_OK):
+                pass
+            mote = serial.Serial(DEV, 115200, timeout = TIMEOUT, write_timeout = 10)
+            ok = True
+        except KeyboardInterrupt:
+            raise
+        except Exception as e:
+            print("Exception caught:", e, file=sys.stderr)
+            ok = False
+            time.sleep(3)
+
+    print("Mote open", file=sys.stderr)
+    ts = bytes(str(int(time.time() * 1000000)), 'ascii')
+    try:
+        mote.write(ts + b'X')
+        print("epoch written", file=sys.stderr)
+    except KeyboardInterrupt:
+        raise
+    except serial.serialutil.SerialTimeoutException:
+        pass
+
+    print("init_mote() done", file=sys.stderr)
+    return mote
+
+if __name__ == "__main__":
+    mote = init_mote()
+
+    session = requests.Session()
+    session.headers = {'Connection': 'close', 'Content-type' : 'application/octet-stream', 'Content-length' : 82}
+    session.cert = MY_CERTIFICATE
+    session.verify = SERVER_CERTIFICATE
+
+    while True:
+        try:
+            data = mote.read(82)
+        except KeyboardInterrupt:
+            raise
+        except Exception as e:
+            print("Exception caught:", e, file=sys.stderr)
+            data = b''
+
+        if not len(data):
+            mote.close()
+            mote = init_mote()
+        else:
+            response = session.post(URL, data)
+
+            print("[", str(response.status_code), "] (", len(data), ") ", data, sep='');
