@@ -54,6 +54,12 @@ public:
         REPORT = 4,
         KEEP_ALIVE = 5,
         EPOCH = 6,
+        GDH_SETUP_FIRST = 7,
+        GDH_SETUP_INTERMEDIATE = 8,
+        GDH SETUP_LAST = 9,
+        GDH_ROUND = 10,
+        GDH_BROADCAST = 11,
+        GDH_RESPONSE = 12,
     };
 
     // Scale for local network's geographic coordinates
@@ -64,7 +70,7 @@ public:
         CM_32    = 3
     };
     static const Scale SCALE = (NODES <= PAN) ? CMx50_8 : (NODES <= SAN) ? CM_16 : (NODES <= LAN) ? CMx25_16 : CM_32;
-
+``
     // Time
     typedef RTC::Microsecond Microsecond;
     typedef unsigned long long Time;
@@ -560,6 +566,7 @@ public:
                         case EPOCH:
                             db << reinterpret_cast<const Epoch &>(p);
                             break;
+                        //TODO GDH
                         default:
                             break;
                     }
@@ -1498,6 +1505,7 @@ private:
             case CONTROL:
                 switch(buf->frame()->data<Control>()->subtype()) {
                     default:
+                    //TODO GDH
                     case DH_RESPONSE:
                     case AUTH_REQUEST: {
                         Time origin = buf->frame()->data<Header>()->time();

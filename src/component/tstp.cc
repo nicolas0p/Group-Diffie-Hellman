@@ -241,6 +241,7 @@ Cipher TSTP::Security::_cipher;
 TSTP::Node_ID TSTP::Security::_id;
 TSTP::Auth TSTP::Security::_auth;
 Diffie_Hellman TSTP::Security::_dh;
+//TODO GDH
 TSTP::Security::Pending_Keys TSTP::Security::_pending_keys;
 TSTP::Security::Peers TSTP::Security::_pending_peers;
 TSTP::Security::Peers TSTP::Security::_trusted_peers;
@@ -260,7 +261,7 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
             case CONTROL: {
                 db<TSTP>(TRC) << "TSTP::Security::update(): Control message received" << endl;
                 switch(buf->frame()->data<Control>()->subtype()) {
-
+                    //TODO GDH
                     case DH_REQUEST: {
                         if(TSTP::here() != TSTP::sink()) {
                             DH_Request * dh_req = buf->frame()->data<DH_Request>();
@@ -508,7 +509,7 @@ void TSTP::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
     }
 
     Packet * packet = buf->frame()->data<Packet>();
-    
+
     if(packet->time() > now())
         return;
 
@@ -553,6 +554,7 @@ void TSTP::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
     } break;
     case CONTROL: {
         switch(buf->frame()->data<Control>()->subtype()) {
+            //TODO GDH
             case DH_REQUEST:
                 db<TSTP>(INF) << "TSTP::update: DH_Request: " << *buf->frame()->data<DH_Request>() << endl;
                 break;
