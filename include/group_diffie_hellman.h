@@ -1,7 +1,7 @@
 // EPOS Elliptic Curve Diffie-Hellman (ECDH) Component Declarations
 
 #ifndef __group_diffie_hellman_h
-#define __Group_diffie_hellman_h
+#define __group_diffie_hellman_h
 
 #include <system/config.h>
 #include <utility/bignum.h>
@@ -22,12 +22,18 @@ public:
     class Parameters {
 		public:
 			Parameters(const Bignum& base, const Bignum& q) : _base(base), _q(q) {}
-			Bignum base() {return _base;} //is this safe? Does it even matter?
-			Bignum q() {return _q;}
+			Parameters(const Parameters& params) : _base(params.base()), _q(params.q()) {}
+			Bignum base() const {return _base;} //is this safe? Does it even matter?
+			Bignum q() const {return _q;}
+
+			friend OStream &operator<<(OStream & out, const Parameters & b){
+				out << "base = " << b.base() << ". q = " << b.q();
+				return out;
+			}
 
 		private:
 			Bignum _base, _q; //q is used to calculate the modulus. base is the base of the exponentiation
-	}
+	};
 
     typedef Bignum Round_Key;
     typedef Bignum Private_Key;
@@ -35,25 +41,13 @@ public:
 	Group_Diffie_Hellman();
 	Group_Diffie_Hellman(const Parameters& parameters);
 
-	Round_Key insert_key();
-	Round_Key insert_key(const Round_Key& round_key);
+	Parameters parameters() const;
 
-	Round_Key remove_key(const Round_Key& round_key);
+	Round_Key insert_key() const;
+	Round_Key insert_key(const Round_Key& round_key) const;
 
-private:
-	void generate_keypair() {
-		db<Diffie_Hellman>(TRC) << "Diffie_Hellman::generate_keypair()" << endl;
+	Round_Key remove_key(const Round_Key& round_key) const;
 
-		_private.randomize();
-
-		db<Diffie_Hellman>(INF) << "Diffie_Hellman Private: " << _private << endl;
-		db<Diffie_Hellman>(INF) << "Diffie_Hellman Base Point: " << _base_point << endl;
-
-		_public = _base_point;
-		_public *= _private;
-
-		db<Diffie_Hellman>(INF) << "Diffie_Hellman Public: " << _public << endl;
-	}
 
 private:
 	Private_Key _private;

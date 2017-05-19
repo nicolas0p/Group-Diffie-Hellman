@@ -1,4 +1,4 @@
-// EPOS Elliptic Curve Diffie-Hellman (ECDH) Component Test Program
+// EPOS Diffie-Hellman Component Test Program
 
 #include <group_diffie_hellman.h>
 #include <utility/ostream.h>
@@ -14,14 +14,13 @@ int main()
 {
     unsigned int seed = Random::random();
 
-    cout << "EPOS Elliptic Curve Group Diffie-Hellman Test" << endl;
+    cout << "EPOS Group Diffie-Hellman Test" << endl;
     cout << "Configuration: " << endl;
     cout << "Group_Diffie_Hellman::SECRET_SIZE = " << Group_Diffie_Hellman::SECRET_SIZE << endl;
     cout << "Group_Diffie_Hellman::PUBLIC_KEY_SIZE = " << Group_Diffie_Hellman::PUBLIC_KEY_SIZE << endl;
     cout << "sizeof(Group_Diffie_Hellman) = " << sizeof(Group_Diffie_Hellman) << endl;
-    cout << "sizeof(Group_Diffie_Hellman::Public_Key) = " << sizeof(Group_Diffie_Hellman::Public_Key) << endl;
+    cout << "sizeof(Group_Diffie_Hellman::Public_Key) = " << sizeof(Group_Diffie_Hellman::Round_Key) << endl;
     cout << "sizeof(Group_Diffie_Hellman::Private_Key) = " << sizeof(Group_Diffie_Hellman::Private_Key) << endl;
-    cout << "sizeof(Group_Diffie_Hellman::Round_Key) = " << sizeof(Group_Diffie_Hellman::Round_Key) << endl;
     cout << "Random seed = " << seed << endl;
     cout << "Iterations = " << ITERATIONS << endl;
 
@@ -40,10 +39,10 @@ int main()
         Group_Diffie_Hellman intermediate(parameters);
 		Group_Diffie_Hellman last(parameters);
 
-        cout << "First's public key: " << first.public_key() << endl; //should be g and q
-        cout << "Intermediate's public key: " << intermediate.public_key() << endl;
-        cout << "Last's public key: " << last.public_key() << endl;
-        cout << "Gateway's public key: " << gateway.public_key() << endl;
+        cout << "First's public key: " << first.parameters() << endl; //should be g and q
+        cout << "Intermediate's public key: " << intermediate.parameters() << endl;
+        cout << "Last's public key: " << last.parameters() << endl;
+        cout << "Gateway's public key: " << gateway.parameters() << endl;
 
         Group_Diffie_Hellman::Round_Key first_round = first.insert_key(); //mod exp of the public key base to the power of its private key
 		//first send its round key to intermediate
@@ -68,14 +67,14 @@ int main()
 
         bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
         if(ok) {
-            cout << "Shared key = " << sk1 << endl;
-            cout << "OK! Alice and Bob share the same key" << endl;
+            cout << "Shared key = " << gateway_final << endl;
+            cout << "OK! The key shared among all members of the group is the same" << endl;
         }
         else {
-            cout << "First's shared key: " << sk1 << endl;
-            cout << "Intermediate's shared key: " << sk2 << endl;
-            cout << "Last's shared key: " << sk3 << endl;
-            cout << "Gateway's shared key: " << sk4 << endl;
+            cout << "First's shared key: " << first_final << endl;
+            cout << "Intermediate's shared key: " << intermediate_final << endl;
+            cout << "Last's shared key: " << last_final << endl;
+            cout << "Gateway's shared key: " << gateway_final << endl;
             cout << "ERROR! Shared keys do not match!" << endl;
         }
 
