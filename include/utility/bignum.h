@@ -35,7 +35,7 @@ private:
     };
 
 public:
-    Bignum(unsigned int n = 0) __attribute__((noinline)) {
+    Bignum(const unsigned int n = 0) __attribute__((noinline)) {
         *this = n;
     }
     Bignum(const unsigned char * bytes, unsigned int len) {
@@ -256,6 +256,11 @@ public:
         out << "]";
         return out;
     }
+
+	//Calculates this = this^exponent mod mod
+	void modular_exponentiation(const Bignum& exponent, const Bignum& mod) {
+	//TODO IMPLEMENT THIS PLEASE
+	}
 
 private:
     static int cmp(const Digit * a, const Digit * b, int size) { // a == b -> 0, a > b -> 1, a < b -> -1
