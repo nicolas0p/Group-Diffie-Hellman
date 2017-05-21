@@ -44,9 +44,9 @@ public:
 	Parameters parameters() const;
 
 	Round_Key insert_key() const;
-	Round_Key insert_key(const Round_Key& round_key) const;
+	Round_Key insert_key(const Round_Key round_key) const;
 
-	Round_Key remove_key(const Round_Key& round_key) const;
+	Round_Key remove_key(const Round_Key round_key) const;
 
 
 private:

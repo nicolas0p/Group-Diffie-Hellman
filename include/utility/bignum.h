@@ -35,7 +35,7 @@ private:
     };
 
 public:
-    Bignum(const unsigned int n = 0) __attribute__((noinline)) {
+    Bignum(unsigned int n = 0) __attribute__((noinline)) {
         *this = n;
     }
     Bignum(const unsigned char * bytes, unsigned int len) {
