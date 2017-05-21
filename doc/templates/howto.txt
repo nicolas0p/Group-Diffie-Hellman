@@ -1,0 +1,33 @@
+*** PORTING EPOS to new Architectures or Machines *** 
+
+EPOS has been designed to minimize hardware dependencies an differently from
+other OS, does not builds a monolithic HAL. Hardware elements are exported to
+higher-level system components (i.e. abstractions) through metaprogrammed 
+constructs called MEDIATORS.
+
+Mediators make extensive use of inline assembly to aid the compiler to issue
+proper system-level code as needed and therefore avoiding a fixed rigid HAL
+interface. Only methods explicitly used by the system instance have to be
+implemented. Therefore, beginning a port with a simple version such as the
+initial 10 versions of the Teaching branch (see tags/teaching-nn-xxxx with
+n < 10) is HIGHLY RECOMMENDED.
+
+After checking out a release from the Teaching branch, focus your attention on
+the architecture and machine templates in $EPOS/doc/templates. Copy them to the
+corresponding folders and then perform recursive find&replace as follows:
+xxxx - all lower case acronym for the architecture (e.g. ia32, avr8, armv7)
+XXXX - EPOS C++ style acronym for the architecture (e.g. IA32, AVR8, ARMv7)
+yyyy - all lower case acronym for the machine (e.g. pc, emote2, arduinouno)
+YYYY - EPOS C++ style acronym for the machine (e.g. PC, eMote2, ArduinoUNO)  
+
+For a new architecture, CPU, MMU and TSC are required, but the MMU and TSC 
+templates are functional implementations for architectures thad do not feature
+an MMU or a TSC. Further guidelines are included in the files.
+
+For a new machine, Memory_Map, Info, Machine, IC, and Timer are required. A
+Display or an UART are very handy, but not strictly required if a JTAG port
+is available. All other mediators can be initially deleted.
+
+* Do not create a new Architecture or Machine if you can make an existing one
+configurable, even if #ifdefs are necessary. Minor derivations are often 
+quickly left abandoned.

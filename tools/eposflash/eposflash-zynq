@@ -1,0 +1,51 @@
+#!/bin/bash
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+BASE_INI="$DIR"/zynq-base_xmd.ini
+INI="$DIR"/xmd.ini
+EMPTY=empty
+
+APP=$4
+GDB=0
+BIT=
+PBIN=
+
+# Check if xmd is on $PATH
+hash xmd > /dev/null 2>/dev/null
+
+if [ $? -ne 0 ] 
+then
+    echo xmd not found in '$PATH'
+    read -n1 -r -p "Press any key to exit"
+    exit 1
+fi
+
+# Running xmd -tcl will execute the commands and exit immediately closing the
+# connection with GDB that's why we rely on the xmd.ini file. xmd.ini doesn't
+# support arguments so we use sed to insert the arguments in it.
+sed 's:APP:'"$APP"':g' $BASE_INI > $INI
+
+# Only substitute BIT and PBIN if the environment variables are set
+if [ ! -z "$BIT" ]
+    then sed -i 's:BIT:'"$BIT"':g' $INI
+else
+    sed -i 's:BIT:'"$EMPTY"':g' $INI
+fi
+
+if [ ! -z "$PBIN" ]
+    then sed -i 's:PBIN:'"$PBIN"':g' $INI
+else
+    sed -i 's:PBIN:'"$EMPTY"':g' $INI
+fi
+
+# Check if $GDB is set
+if [ "$GDB" = "1" ]
+    then sed -i 's:GDB:'1':g' $INI
+else 
+    sed -i 's:GDB:'0':g' $INI
+fi
+
+cd $DIR
+xmd
+
+rm $INI
