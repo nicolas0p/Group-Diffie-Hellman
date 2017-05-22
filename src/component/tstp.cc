@@ -414,6 +414,32 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
                         }
                     } break;
 
+					case GDH_SETUP_FIRST: {
+						GDH_Setup_First* message = buf->frame()->data<GDH_Setup_First>();
+						_GDH_parameters = message->parameters();
+						Region::Space next = message->next();
+						Group_Diffie_Hellman gdh(_GDH_parameters);
+						Group_Diffie_Hellman::Round_Key round_key = gdh.insert_key(); //uses the randomly generated private key in the GDH object creation
+						//Create GDH_ROUND message object and send to next
+					} break;
+					case GDH_SETUP_INTERMEDIATE: {
+						GDH_Setup_Intermediate* message = buf->frame()->data<GDH_Setup_Intermediate>();
+						_GDH_parameters = message->parameters();
+						_GDH_next = Simple_List<Region::Space>(); //only correct for the first group id
+						List_Elements::Singly_Linked<Region::Space> *next = new List_Elements::Singly_Linked<Region::Space>(new Region::Space(message->next()));
+						_GDH_next.insert(next);
+						_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
+					} break;
+					case GDH_SETUP_LAST: {
+						GDH_Setup_Last* message = buf->frame()->data<GDH_Setup_Last>();
+						_GDH_next = message->next(); //its a list, how to do this transparently?
+						_GDH_parameters = message->parameters();
+						_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
+					} break;
+					case GDH_ROUND: {} break;
+					case GDH_BROADCAST: {} break;
+					case GDH_RESPONSE: {} break;
+
                     default: break;
                 }
             }

@@ -5,10 +5,10 @@
 __BEGIN_SYS
 
 // Class methods
-Group_Diffie_Hellman::Group_Diffie_Hellman(const Parameters & parameters) : _parameters(parameters)
+Group_Diffie_Hellman::Group_Diffie_Hellman(const Parameters & parameters) : _private(2/*TODO random generation*/), _parameters(parameters)
 {}
 
-Group_Diffie_Hellman::Group_Diffie_Hellman() : _parameters(7, 23)
+Group_Diffie_Hellman::Group_Diffie_Hellman() : _private(2/*TODO random generation*/), _parameters(7, 23)
 {}
 
 Group_Diffie_Hellman::Parameters Group_Diffie_Hellman::parameters() const

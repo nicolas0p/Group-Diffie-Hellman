@@ -54,7 +54,20 @@ public:
         REPORT = 4,
         KEEP_ALIVE = 5,
         EPOCH = 6,
+		GDH_SETUP_FIRST = 7,
+		GDH_SETUP_INTERMEDIATE = 8,
+		GDH_SETUP_LAST = 9,
+		GDH_ROUND = 10,
+		GDH_BROADCAST = 11,
+		GDH_RESPONSE = 12,
     };
+
+	enum GDH_State {
+		GDH_WAITING_EXP = 0,
+		GDH_WAITING_POP = 1,
+		GDH_WAITING_FINAL = 2,
+		GDH_WAITING_GW = 3,
+	};
 
     // Scale for local network's geographic coordinates
     enum Scale {
@@ -493,6 +506,7 @@ __END_SYS
 #include <utility/array.h>
 #include <network.h>
 #include <diffie_hellman.h>
+#include <group_diffie_hellman.h>
 #include <cipher.h>
 #include <thread.h>
 #include <alarm.h>
@@ -560,6 +574,24 @@ public:
                         case EPOCH:
                             db << reinterpret_cast<const Epoch &>(p);
                             break;
+						case GDH_SETUP_FIRST:
+							db << reinterpret_cast<const GDH_Setup_First &>(p);
+							break;
+						/*case GDH_SETUP_INTERMEDIATE:
+							db << reinterpret_cast<const GDH_Setup_Intermediate &>(p);
+							break;
+						case GDH_SETUP_LAST:
+							db << reinterpret_cast<const GDH_Setup_Last &>(p);
+							break;
+						case GDH_ROUND:
+							db << reinterpret_cast<const GDH_Round &>(p);
+							break;
+						case GDH_BROADCAST:
+							db << reinterpret_cast<const GDH_Broadcast &>(p);
+							break;
+						case GDH_RESPONSE:
+							db << reinterpret_cast<const GDH_Response &>(p);
+							break; */
                         default:
                             break;
                     }
@@ -805,6 +837,94 @@ public:
         Auth _auth; // TODO
         CRC _crc;
     // } __attribute__((packed)); // TODO
+    };
+
+	typedef int Group_Id;
+	typedef Group_Diffie_Hellman::Parameters Parameters;
+
+	// Group Diffie-Hellman setup first node Security Bootstrap Control Message
+    class GDH_Setup_First: public Control
+    {
+    public:
+		GDH_Setup_First(const Group_Id & group_id, const Parameters & parameters, const Region::Space & next)
+        : Control(GDH_SETUP_FIRST, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
+
+        const Region::Space & next() { return _next; }
+
+        const Parameters & parameters() { return _parameters; }
+
+        friend Debug & operator<<(Debug & db, const GDH_Setup_First & m) {
+            db << reinterpret_cast<const Control &>(m) << ",n=" << m._next << ",p=" << m._parameters << ",g=" << m._group_id;
+            return db;
+        }
+        friend OStream & operator<<(OStream & db, const GDH_Setup_First & m) {
+            db << reinterpret_cast<const Control &>(m) << ",n=" << m._next << ",p=" << m._parameters << ",g=" << m._group_id;
+            return db;
+        }
+
+    private:
+        Region::Space _next;
+        Parameters _parameters;
+		Group_Id _group_id;
+        //CRC _crc; //What is CRC? Do we need this here?
+    //} __attribute__((packed)); // TODO
+    };
+
+	// Group Diffie-Hellman setup intermediate node Security Bootstrap Control Message
+    class GDH_Setup_Intermediate: public Control
+    {
+    public:
+		GDH_Setup_Intermediate(const Group_Id & group_id, const Parameters & parameters, const Region::Space & next)
+        : Control(GDH_SETUP_INTERMEDIATE, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
+
+        const Region::Space & next() { return _next; }
+
+        const Parameters & parameters() { return _parameters; }
+
+        friend Debug & operator<<(Debug & db, const GDH_Setup_Intermediate & m) {
+            db << reinterpret_cast<const Control &>(m) << ",n=" << m._next << ",p=" << m._parameters << ",g=" << m._group_id;
+            return db;
+        }
+        friend OStream & operator<<(OStream & db, const GDH_Setup_Intermediate & m) {
+            db << reinterpret_cast<const Control &>(m) << ",n=" << m._next << ",p=" << m._parameters << ",g=" << m._group_id;
+            return db;
+        }
+
+    private:
+        Region::Space _next;
+        Parameters _parameters;
+		Group_Id _group_id;
+        //CRC _crc; //What is CRC? Do we need this here?
+    //} __attribute__((packed)); // TODO
+    };
+
+	// Group Diffie-Hellman setup last node Security Bootstrap Control Message
+    class GDH_Setup_Last: public Control
+    {
+    public:
+		GDH_Setup_Last(const Group_Id & group_id, const Parameters & parameters, const Simple_List<Region::Space> & next)
+        : Control(GDH_SETUP_LAST, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
+
+        const Simple_List<Region::Space> & next() { return _next; }
+
+        const Parameters & parameters() { return _parameters; }
+
+        friend Debug & operator<<(Debug & db, const GDH_Setup_Last & m) {
+			//not printing next
+            db << reinterpret_cast<const Control &>(m) << ",p=" << m._parameters << ",g=" << m._group_id;
+            return db;
+        }
+        friend OStream & operator<<(OStream & db, const GDH_Setup_Last & m) {
+            db << reinterpret_cast<const Control &>(m) << ",p=" << m._parameters << ",g=" << m._group_id;
+            return db;
+        }
+
+    private:
+        Simple_List<Region::Space> _next; //TODO GDH Should we use something else instead of a linked list?
+        Parameters _parameters;
+		Group_Id _group_id;
+        //CRC _crc; //What is CRC? Do we need this here?
+    //} __attribute__((packed)); // TODO
     };
 
     // Report Control Message
@@ -1427,7 +1547,10 @@ public:
         static volatile bool _peers_lock;
         static Thread * _key_manager;
         static unsigned int _dh_requests_open;
-    };
+		static Group_Diffie_Hellman::Parameters _GDH_parameters;
+		static GDH_State _GDH_state;
+		static Simple_List<Region::Space> _GDH_next;
+	};
 
     // TSTP Life Keeper explicitly asks for metadata whenever it's needed
     class Life_Keeper
