@@ -73,7 +73,7 @@ with open(test_output, 'r') as f:
         c_raw = read_line(f)
         c = find_bignum(c_raw)
 
-        op = c_raw[2]
+        op = c_raw.split()[1]
         if op == '+':
             expected = ((a + b) % mod)
         elif op == '-':
@@ -83,6 +83,10 @@ with open(test_output, 'r') as f:
         elif op == '/':
             inv = pow(b, mod-2, mod)
             expected = ((a * inv) % mod)
+        elif op == 'mod_exp':
+            mod_raw = read_line(f)
+            mod = find_bignum(mod_raw)
+            expected = pow(a, b, mod)
 
         if expected != c:
             errors += 1
