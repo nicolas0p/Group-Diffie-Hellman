@@ -972,7 +972,7 @@ public:
     class GDH_Broadcast: public Control
     {
     public:
-		GDH_Broadcat(const Group_Id & group_id, const Round_Key & round_key)
+		GDH_Broadcast(const Group_Id & group_id, const Round_Key & round_key)
         : Control(GDH_BROADCAST, 0, 0, now(), here(), here()), _group_id(group_id), _round_key(round_key){ }
 
 		const Group_Id group_id() { return _group_id; }
@@ -996,7 +996,7 @@ public:
     //} __attribute__((packed)); // TODO
     };
 
-	// Group Diffie-Hellman Broadcast Security Bootstrap Control Message
+	// Group Diffie-Hellman Response Security Bootstrap Control Message
     class GDH_Response: public Control
     {
     public:

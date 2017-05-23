@@ -421,13 +421,15 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 							GDH_Setup_First* message = buf->frame()->data<GDH_Setup_First>();
 							Region::Space next = message->next();
 							_gdh = Group_Diffie_Hellman(message->parameters());
-							Group_Diffie_Hellman::Round_Key round_key = _gdh.insert_key(); //uses the randomly generated private key in the GDH object creation
+							Round_Key round_key = _gdh.insert_key();
+							//uses the randomly generated private key in the GDH object creation
 							_GDH_node_type = GDH_FIRST;
-							_GDH_state = GDH_WAITING_POP; //this node is waiting to remove its key from the round key
-                            //resp = TSTP::alloc(sizeof(Auth_Request));
-                            //new (resp->frame()) Auth_Request(_auth, otp(ms, _id));
-                            //TSTP::marshal(resp);
-							//Create GDH_ROUND message object and send to next
+							_GDH_state = GDH_WAITING_POP;
+							//this node is waiting to remove its key from the round key
+                            Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
+                            new (resp->frame()) GDH_Round(message->group_id(), round_key);
+                            TSTP::marshal(resp);
+                            TSTP::_nic->send(resp);
 						}
 					} break;
 					case GDH_SETUP_INTERMEDIATE: {
@@ -458,9 +460,18 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 								case GDH_INTERMEDIATE: {
 									//calculate new partial key and send to next
 									round_key = _gdh.insert_key(round_key);
+									Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
+									new (resp->frame()) GDH_Round(message->group_id(), round_key);
+									TSTP::marshal(resp);
+									TSTP::_nic->send(resp);
 								} break;
 								case GDH_LAST: {
-									Round_Key my_key = _gdh.insert_key(round_key); //we will want the old round key here
+									//we will want the old round key here
+									Round_Key my_key = _gdh.insert_key(round_key); 
+									Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
+									new (resp->frame()) GDH_Response(message->group_id(), round_key);
+									TSTP::marshal(resp);
+									TSTP::_nic->send(resp);
 									//send GDH_RESPONSE with round_key
 									//send GDH_BROADCAST with my_key
 								} break;
