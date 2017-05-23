@@ -485,10 +485,42 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 								} break;
 								default: break;
 							}
+						} else /*gateway*/ {
+							//we should test this to make sure this round_key came from the last node!
+							round_key = _gdh.insert_key(round_key); //final key!
+							_GDH_key = round_key;
 						}
 					} break;
-					case GDH_BROADCAST: {} break;
-					case GDH_RESPONSE: {} break;
+					case GDH_BROADCAST: {
+						//can be received from two nodes. Last and gateway
+						GDH_Broadcast* message = buf->frame()->data<GDH_Broadcast>();
+						if(TSTP::here() != TSTP::sink()) {
+							if(_GDH_state == GDH_WAITING_POP) {
+								Round_Key round_key = message->round_key();
+								round_key = _gdh.remove_key(round_key);
+								Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
+								new (resp->frame()) GDH_Broadcast(message->group_id(), TSTP::sink(), round_key);
+								TSTP::marshal(resp);
+								TSTP::_nic->send(resp);
+							} else if(_GDH_state == GDH_WAITING_FINAL) {
+								Round_Key round_key = message->round_key();
+								round_key = _gdh.insert_key(round_key);
+								_GDH_key = round_key; //final key!
+							}
+						}
+					} break;
+					case GDH_RESPONSE: {
+						if(TSTP::here() == TSTP::sink()) {
+							GDH_Response* message = buf->frame()->data<GDH_Response>();
+							Region::Space origin = buf->frame()->data<Header>()->origin(); //source of the message. Address
+							Round_Key round_key = message->round_key();
+							round_key = _gdh.insert_key(round_key);
+							Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
+							new (resp->frame()) GDH_Broadcast(message->group_id(), origin, round_key);
+							TSTP::marshal(resp);
+							TSTP::_nic->send(resp);
+						}
+					} break;
 
                     default: break;
                 }

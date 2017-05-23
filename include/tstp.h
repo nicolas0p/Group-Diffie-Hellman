@@ -1663,6 +1663,7 @@ public:
         static Thread * _key_manager;
         static unsigned int _dh_requests_open;
 		static Group_Diffie_Hellman _gdh;
+		static Group_Diffie_Hellman::Round_Key _GDH_key; //final GDH key
 		static GDH_State _GDH_state;
 		static GDH_Node_Type _GDH_node_type;
 		static Simple_List<Region::Space> _GDH_next;

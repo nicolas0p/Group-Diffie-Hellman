@@ -443,7 +443,7 @@ private:
             res[i] = r[i];
     }
 
-    _Word barrett_u(const BigNum& mod){
+    //_Word barrett_u(const BigNum& mod){ //TODO removed because the code wasnt compiling with it
       // p is a prime, or simply the mod
       // l is the word size, or near the word size, usually simply 32
       // we can make l as large as the amount of significant bits in our BigNum
@@ -454,7 +454,7 @@ private:
       // to make b larger, we just need to make l as large a the the significant
       // bits it p
       // the result is floor((b ^ (2 * k)) / p)
-    }
+    //}
 
     // COMPLETELY RIPPED OFF FROM barrett_reduction
     // res = a % _mod
