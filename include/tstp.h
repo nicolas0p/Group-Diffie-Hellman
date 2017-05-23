@@ -853,12 +853,14 @@ public:
     class GDH_Setup_First: public Control
     {
     public:
-		GDH_Setup_First(const Group_Id & group_id, const Parameters & parameters, const Region::Space & next)
-        : Control(GDH_SETUP_FIRST, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
+		GDH_Setup_First(const Group_Id & group_id, Region::Space destination, const Parameters & parameters, const Region::Space & next)
+        : Control(GDH_SETUP_FIRST, 0, 0, now(), here(), here()), _destination(destination), _next(next), _parameters(parameters), _group_id(group_id){ }
 
 		const Group_Id group_id() { return _group_id; }
 
 		const Region::Space & next() { return _next; }
+
+		const Region::Space & destination() { return _destination; }
 
         const Parameters & parameters() { return _parameters; }
 
@@ -872,6 +874,7 @@ public:
         }
 
     private:
+		Region::Space _destination; //destination of this message
         Region::Space _next;
         Parameters _parameters;
 		Group_Id _group_id;
@@ -883,12 +886,14 @@ public:
     class GDH_Setup_Intermediate: public Control
     {
     public:
-		GDH_Setup_Intermediate(const Group_Id & group_id, const Parameters & parameters, const Region::Space & next)
-        : Control(GDH_SETUP_INTERMEDIATE, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
+		GDH_Setup_Intermediate(const Group_Id & group_id, const Region::Space & destination, const Parameters & parameters, const Region::Space & next)
+        : Control(GDH_SETUP_INTERMEDIATE, 0, 0, now(), here(), here()), _destination(destination), _next(next), _parameters(parameters), _group_id(group_id){ }
 
 		const Group_Id group_id() { return _group_id; }
 
 		const Region::Space & next() { return _next; }
+
+		const Region::Space & destination() { return _destination; }
 
         const Parameters & parameters() { return _parameters; }
 
@@ -902,6 +907,7 @@ public:
         }
 
     private:
+		Region::Space _destination;
         Region::Space _next;
         Parameters _parameters;
 		Group_Id _group_id;
@@ -913,12 +919,14 @@ public:
     class GDH_Setup_Last: public Control
     {
     public:
-		GDH_Setup_Last(const Group_Id & group_id, const Parameters & parameters, const Simple_List<Region::Space> & next)
-        : Control(GDH_SETUP_LAST, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
+		GDH_Setup_Last(const Group_Id & group_id, const Region::Space & destination, const Parameters & parameters, const Simple_List<Region::Space> & next)
+        : Control(GDH_SETUP_LAST, 0, 0, now(), here(), here()), _destination(destination), _next(next), _parameters(parameters), _group_id(group_id){ }
 
 		const Group_Id group_id() { return _group_id; }
 
 		const Simple_List<Region::Space> & next() { return _next; }
+
+		const Region::Space & destination() { return _destination; }
 
         const Parameters & parameters() { return _parameters; }
 
@@ -933,6 +941,7 @@ public:
         }
 
     private:
+		Region::Space _destination;
         Simple_List<Region::Space> _next; //TODO GDH Should we use something else instead of a linked list?
         Parameters _parameters;
 		Group_Id _group_id;
@@ -944,10 +953,12 @@ public:
     class GDH_Round: public Control
     {
     public:
-		GDH_Round(const Group_Id & group_id, const Round_Key & round_key)
-        : Control(GDH_ROUND, 0, 0, now(), here(), here()), _group_id(group_id), _round_key(round_key){ }
+		GDH_Round(const Group_Id & group_id, const Region::Space & destination, const Round_Key & round_key)
+        : Control(GDH_ROUND, 0, 0, now(), here(), here()), _destination(destination), _group_id(group_id), _round_key(round_key){ }
 
 		const Group_Id group_id() { return _group_id; }
+
+		const Region::Space & destination() { return _destination; }
 
 		Round_Key round_key() { return _round_key; }
 
@@ -962,6 +973,7 @@ public:
         }
 
     private:
+		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
         //CRC _crc; //What is CRC? Do we need this here?
@@ -972,10 +984,12 @@ public:
     class GDH_Broadcast: public Control
     {
     public:
-		GDH_Broadcast(const Group_Id & group_id, const Round_Key & round_key)
-        : Control(GDH_BROADCAST, 0, 0, now(), here(), here()), _group_id(group_id), _round_key(round_key){ }
+		GDH_Broadcast(const Group_Id & group_id, const Region::Space & destination, const Round_Key & round_key)
+        : Control(GDH_BROADCAST, 0, 0, now(), here(), here()), _destination(destination), _group_id(group_id), _round_key(round_key){ }
 
 		const Group_Id group_id() { return _group_id; }
+
+		const Region::Space & destination() { return _destination; }
 
 		Round_Key round_key() { return _round_key; }
 
@@ -990,6 +1004,7 @@ public:
         }
 
     private:
+		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
         //CRC _crc; //What is CRC? Do we need this here?
@@ -1000,10 +1015,12 @@ public:
     class GDH_Response: public Control
     {
     public:
-		GDH_Response(const Group_Id & group_id, const Round_Key & round_key)
-        : Control(GDH_RESPONSE, 0, 0, now(), here(), here()), _group_id(group_id), _round_key(round_key){ }
+		GDH_Response(const Group_Id & group_id, const Region::Space destination, const Round_Key & round_key)
+        : Control(GDH_RESPONSE, 0, 0, now(), here(), here()), _destination(destination), _group_id(group_id), _round_key(round_key){ }
 
 		const Group_Id group_id() { return _group_id; }
+
+		const Region::Space & destination() { return _destination; }
 
 		Round_Key round_key() { return _round_key; }
 
@@ -1018,6 +1035,7 @@ public:
         }
 
     private:
+		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
         //CRC _crc; //What is CRC? Do we need this here?
@@ -1645,6 +1663,7 @@ public:
         static Thread * _key_manager;
         static unsigned int _dh_requests_open;
 		static Group_Diffie_Hellman _gdh;
+		static Group_Diffie_Hellman::Round_Key _GDH_key; //final GDH key
 		static GDH_State _GDH_state;
 		static GDH_Node_Type _GDH_node_type;
 		static Simple_List<Region::Space> _GDH_next;
@@ -1748,6 +1767,30 @@ private:
                     case EPOCH: {
                         return buf->frame()->data<Epoch>()->destination();
                     }
+					case GDH_SETUP_FIRST: {
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
+					}
+					case GDH_SETUP_INTERMEDIATE: {
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
+					}
+					case GDH_SETUP_LAST: {
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
+					}
+					case GDH_ROUND: {
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
+					}
+					case GDH_BROADCAST: {
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
+					}
+					case GDH_RESPONSE: {
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
+					}
                 }
             default:
                 db<TSTP>(ERR) << "TSTP::destination(): ERROR: unrecognized frame type " << buf->frame()->data<Frame>()->type() << endl;
