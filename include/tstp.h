@@ -1767,27 +1767,27 @@ private:
                         return buf->frame()->data<Epoch>()->destination();
                     }
 					case GDH_SETUP_FIRST: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination;
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_SETUP_INTERMEDIATE: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination;
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_SETUP_LAST: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination;
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_ROUND: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination;
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_BROADCAST: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination;
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_RESPONSE: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination;
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
                 }
