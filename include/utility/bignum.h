@@ -257,9 +257,43 @@ public:
         return out;
     }
 
-	//Calculates this = this^exponent mod mod
-	void modular_exponentiation(const Bignum& exponent, const Bignum& mod) {
-	//TODO IMPLEMENT THIS PLEASE
+  void modular_exponentiation(const Bignum& exponent, const Bignum& mod){
+  }
+
+	//Calculates this = this^exponent % mod
+	void mod_exp(Bignum exponent, const Bignum& mod) {
+    // def mod_exp(base, exponent, mod):
+    // y = 1
+    // while exponent > 1:
+    //     if exponent % 2:
+    //         exponent -= 1
+    //         y *= base
+    //         y %= mod
+    //     base *= base
+    //     base %= mod
+    //     exponent //= 2
+    // return (base * y) % mod
+
+    Bignum const one(1);
+    Digit big_y[2 * DIGITS];
+    Digit small_y[DIGITS];
+    Digit square[2 * DIGITS];
+
+    // initializing y as 1
+    simple_mult(big_y, one._data, one._data, DIGITS);
+
+    while(exponent > one){
+      if(exponent.is_odd()){
+        exponent -= one;
+        simple_mult(big_y, small_y, _data);
+        simple_mod(small_y, big_y, mod._data, DIGITS);
+      }
+      simple_mult(square, _data, _data, DIGITS);
+      simple_mod(_data, square, mod._data, DIGITS);
+      exponent.divide_by_two();
+    }
+    simple_mult(big_y, _data, small_y, DIGITS);
+    simple_mod(_data, big_y, mod._data, DIGITS);
 	}
 
 private:
