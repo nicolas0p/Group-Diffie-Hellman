@@ -69,6 +69,12 @@ public:
 		GDH_WAITING_GW = 3,
 	};
 
+	enum GDH_Node_Type {
+		GDH_FIRST = 0,
+		GDH_INTERMEDIATE = 1,
+		GDH_LAST = 2,
+	};
+
     // Scale for local network's geographic coordinates
     enum Scale {
         CMx50_8  = 0,
@@ -841,6 +847,7 @@ public:
 
 	typedef int Group_Id;
 	typedef Group_Diffie_Hellman::Parameters Parameters;
+	typedef Group_Diffie_Hellman::Round_Key Round_Key;
 
 	// Group Diffie-Hellman setup first node Security Bootstrap Control Message
     class GDH_Setup_First: public Control
@@ -849,7 +856,9 @@ public:
 		GDH_Setup_First(const Group_Id & group_id, const Parameters & parameters, const Region::Space & next)
         : Control(GDH_SETUP_FIRST, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
 
-        const Region::Space & next() { return _next; }
+		const Group_Id group_id() { return _group_id; }
+
+		const Region::Space & next() { return _next; }
 
         const Parameters & parameters() { return _parameters; }
 
@@ -877,7 +886,9 @@ public:
 		GDH_Setup_Intermediate(const Group_Id & group_id, const Parameters & parameters, const Region::Space & next)
         : Control(GDH_SETUP_INTERMEDIATE, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
 
-        const Region::Space & next() { return _next; }
+		const Group_Id group_id() { return _group_id; }
+
+		const Region::Space & next() { return _next; }
 
         const Parameters & parameters() { return _parameters; }
 
@@ -905,7 +916,9 @@ public:
 		GDH_Setup_Last(const Group_Id & group_id, const Parameters & parameters, const Simple_List<Region::Space> & next)
         : Control(GDH_SETUP_LAST, 0, 0, now(), here(), here()), _next(next), _parameters(parameters), _group_id(group_id){ }
 
-        const Simple_List<Region::Space> & next() { return _next; }
+		const Group_Id group_id() { return _group_id; }
+
+		const Simple_List<Region::Space> & next() { return _next; }
 
         const Parameters & parameters() { return _parameters; }
 
@@ -923,6 +936,90 @@ public:
         Simple_List<Region::Space> _next; //TODO GDH Should we use something else instead of a linked list?
         Parameters _parameters;
 		Group_Id _group_id;
+        //CRC _crc; //What is CRC? Do we need this here?
+    //} __attribute__((packed)); // TODO
+    };
+
+	// Group Diffie-Hellman round Security Bootstrap Control Message
+    class GDH_Round: public Control
+    {
+    public:
+		GDH_Round(const Group_Id & group_id, const Round_Key & round_key)
+        : Control(GDH_ROUND, 0, 0, now(), here(), here()), _group_id(group_id), _round_key(round_key){ }
+
+		const Group_Id group_id() { return _group_id; }
+
+		Round_Key round_key() { return _round_key; }
+
+        friend Debug & operator<<(Debug & db, const GDH_Round & m) {
+			//not printing next
+            db << reinterpret_cast<const Control &>(m) << "g=" << m._group_id << ",r=" << m._round_key;
+            return db;
+        }
+        friend OStream & operator<<(OStream & db, const GDH_Round & m) {
+            db << reinterpret_cast<const Control &>(m) << "g=" << m._group_id << ",r=" << m._round_key;
+            return db;
+        }
+
+    private:
+		Group_Id _group_id;
+		Round_Key _round_key;
+        //CRC _crc; //What is CRC? Do we need this here?
+    //} __attribute__((packed)); // TODO
+    };
+
+	// Group Diffie-Hellman Broadcast Security Bootstrap Control Message
+    class GDH_Broadcast: public Control
+    {
+    public:
+		GDH_Broadcat(const Group_Id & group_id, const Round_Key & round_key)
+        : Control(GDH_BROADCAST, 0, 0, now(), here(), here()), _group_id(group_id), _round_key(round_key){ }
+
+		const Group_Id group_id() { return _group_id; }
+
+		Round_Key round_key() { return _round_key; }
+
+        friend Debug & operator<<(Debug & db, const GDH_Broadcast & m) {
+			//not printing next
+            db << reinterpret_cast<const Control &>(m) << "g=" << m._group_id << ",r=" << m._round_key;
+            return db;
+        }
+        friend OStream & operator<<(OStream & db, const GDH_Broadcast & m) {
+            db << reinterpret_cast<const Control &>(m) << "g=" << m._group_id << ",r=" << m._round_key;
+            return db;
+        }
+
+    private:
+		Group_Id _group_id;
+		Round_Key _round_key;
+        //CRC _crc; //What is CRC? Do we need this here?
+    //} __attribute__((packed)); // TODO
+    };
+
+	// Group Diffie-Hellman Broadcast Security Bootstrap Control Message
+    class GDH_Response: public Control
+    {
+    public:
+		GDH_Response(const Group_Id & group_id, const Round_Key & round_key)
+        : Control(GDH_RESPONSE, 0, 0, now(), here(), here()), _group_id(group_id), _round_key(round_key){ }
+
+		const Group_Id group_id() { return _group_id; }
+
+		Round_Key round_key() { return _round_key; }
+
+        friend Debug & operator<<(Debug & db, const GDH_Response & m) {
+			//not printing next
+            db << reinterpret_cast<const Control &>(m) << "g=" << m._group_id << ",r=" << m._round_key;
+            return db;
+        }
+        friend OStream & operator<<(OStream & db, const GDH_Response & m) {
+            db << reinterpret_cast<const Control &>(m) << "g=" << m._group_id << ",r=" << m._round_key;
+            return db;
+        }
+
+    private:
+		Group_Id _group_id;
+		Round_Key _round_key;
         //CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
@@ -1547,8 +1644,9 @@ public:
         static volatile bool _peers_lock;
         static Thread * _key_manager;
         static unsigned int _dh_requests_open;
-		static Group_Diffie_Hellman::Parameters _GDH_parameters;
+		static Group_Diffie_Hellman _gdh;
 		static GDH_State _GDH_state;
+		static GDH_Node_Type _GDH_node_type;
 		static Simple_List<Region::Space> _GDH_next;
 	};
 
