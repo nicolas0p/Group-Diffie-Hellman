@@ -427,7 +427,7 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 							_GDH_state = GDH_WAITING_POP;
 							//this node is waiting to remove its key from the round key
                             Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
-                            new (resp->frame()) GDH_Round(message->group_id(), round_key);
+                            new (resp->frame()) GDH_Round(message->group_id(), next, round_key);
                             TSTP::marshal(resp);
                             TSTP::_nic->send(resp);
 						}
@@ -461,7 +461,8 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 									//calculate new partial key and send to next
 									round_key = _gdh.insert_key(round_key);
 									Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
-									new (resp->frame()) GDH_Round(message->group_id(), round_key);
+									Region::Space* next = _GDH_next.head()->object();
+									new (resp->frame()) GDH_Round(message->group_id(), *next, round_key);
 									TSTP::marshal(resp);
 									TSTP::_nic->send(resp);
 								} break;
@@ -469,10 +470,17 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 									//we will want the old round key here
 									Round_Key my_key = _gdh.insert_key(round_key); 
 									Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
-									new (resp->frame()) GDH_Response(message->group_id(), round_key);
+									new (resp->frame()) GDH_Response(message->group_id(), TSTP::sink(), round_key);
 									TSTP::marshal(resp);
 									TSTP::_nic->send(resp);
 									//send GDH_RESPONSE with round_key
+									for(auto next_el = _GDH_next.begin(); next_el != _GDH_next.end(); next_el++) {
+										resp = TSTP::alloc(sizeof(GDH_Broadcast));
+										Region::Space* next = next_el->object();
+										new (resp->frame()) GDH_Broadcast(message->group_id(), *next, my_key);
+										TSTP::marshal(resp);
+										TSTP::_nic->send(resp);
+									}
 									//send GDH_BROADCAST with my_key
 								} break;
 								default: break;
