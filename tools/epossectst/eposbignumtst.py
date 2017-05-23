@@ -83,6 +83,9 @@ with open(test_output, 'r') as f:
         elif op == '/':
             inv = pow(b, mod-2, mod)
             expected = ((a * inv) % mod)
+        elif op == '%':
+            print('interpreting mod', a, b)
+            expected = ((a * b) % mod)
         elif op == 'mod_exp':
             mod_raw = read_line(f)
             mod = find_bignum(mod_raw)
