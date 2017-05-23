@@ -486,9 +486,11 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 								default: break;
 							}
 						} else /*gateway*/ {
-							//we should test this to make sure this round_key came from the last node!
-							round_key = _gdh.insert_key(round_key); //final key!
-							_GDH_key = round_key;
+							if(_GDH_state == GDH_WAITING_GW) {
+								//we should test this to make sure this round_key came from the last node!
+								round_key = _gdh.insert_key(round_key); //final key!
+								_GDH_key = round_key;
+							}
 						}
 					} break;
 					case GDH_BROADCAST: {
