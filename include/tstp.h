@@ -1491,6 +1491,8 @@ public:
 
         void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf);
 
+		static Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes);
+
     private:
         static void encrypt(const unsigned char * msg, const Peer * peer, unsigned char * out) {
             OTP key = otp(peer->master_secret(), peer->id());

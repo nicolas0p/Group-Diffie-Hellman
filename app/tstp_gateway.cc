@@ -23,17 +23,17 @@ int main()
     cout << "The time now is " << TSTP::now() << endl;
     cout << "I am" << (TSTP::here() == TSTP::sink() ? " " : " not ") << "the sink" << endl;
 
-    Coordinates center_sensor(10,10,0);
-    Region region_sensor(center_sensor, 0, TSTP::now(), -1);
+	TSTP::Coordinates center_sensor(10,10,0);
+	TSTP::Region region_sensor(center_sensor, 0, TSTP::now(), -1);
 
     cout << "I will now ask for Acceleration data from any sensor located in " << region_sensor << endl;
 
-    Acceleration acceleration(region_sensor, INTEREST_EXPIRY, INTEREST_PERIOD);
+    /*Acceleration acceleration(region_sensor, INTEREST_EXPIRY, INTEREST_PERIOD);
 
     while(true) {
         Alarm::delay(INTEREST_PERIOD);
         cout << "Acceleration in " << acceleration.location() << " at " << acceleration.time() << " was " << acceleration << endl;
-    }
+    }*/
 
     return 0;
 }
