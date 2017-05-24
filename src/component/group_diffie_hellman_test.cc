@@ -37,11 +37,6 @@ int main()
         Group_Diffie_Hellman intermediate;
 		Group_Diffie_Hellman last;
 
-        // cout << "First's public key: " << first.parameters() << endl; //should be g and q
-        // cout << "Intermediate's public key: " << intermediate.parameters() << endl;
-        // cout << "Last's public key: " << last.parameters() << endl;
-        // cout << "Gateway's public key: " << gateway.parameters() << endl;
-
         Group_Diffie_Hellman::Round_Key first_round = first.insert_key(); //mod exp of the public key base to the power of its private key
 		//first send its round key to intermediate
 		Group_Diffie_Hellman::Round_Key intermediate_round = intermediate.insert_key(first_round); //mod exp of the number received to the power of its private key
@@ -55,13 +50,13 @@ int main()
 		Group_Diffie_Hellman::Round_Key first_removed = first.remove_key(last_round);
 		Group_Diffie_Hellman::Round_Key intermediate_removed = intermediate.remove_key(last_round);
 		//first and intermediate send them to the gateway
-		Group_Diffie_Hellman::Round_Key before_last_first = gateway.insert_key(first_removed);
-		Group_Diffie_Hellman::Round_Key before_last_intermediate = gateway.insert_key(intermediate_removed);
-		Group_Diffie_Hellman::Round_Key before_last_last = gateway.insert_key(last_removed); //great name, right? :)
+		Group_Diffie_Hellman::Round_Key first_missing_own = gateway.insert_key(first_removed);
+		Group_Diffie_Hellman::Round_Key intermediate_missing_own = gateway.insert_key(intermediate_removed);
+		Group_Diffie_Hellman::Round_Key last_missing_own = gateway.insert_key(last_removed);
 		//the gateway sends the key without each node's private key to each of them so they can do the last exponentiation
-		Group_Diffie_Hellman::Round_Key first_final = first.insert_key(before_last_first);
-		Group_Diffie_Hellman::Round_Key intermediate_final = intermediate.insert_key(before_last_intermediate);
-		Group_Diffie_Hellman::Round_Key last_final = last.insert_key(before_last_last);
+		Group_Diffie_Hellman::Round_Key first_final = first.insert_key(first_missing_own);
+		Group_Diffie_Hellman::Round_Key intermediate_final = intermediate.insert_key(intermediate_missing_own);
+		Group_Diffie_Hellman::Round_Key last_final = last.insert_key(last_missing_own);
 
         // bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
         bool ok1 = gateway_final.x == first_final.x && gateway_final.y == first_final.y && gateway_final.z == first_final.z;
