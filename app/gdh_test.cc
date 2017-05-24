@@ -33,16 +33,14 @@ int main()
         cout << "Iteration " << it << endl;
 
 		Group_Diffie_Hellman gateway;
-		Group_Diffie_Hellman::Parameters parameters = gateway.parameters(); //the gateway determines the base and the prime q
-        //the parameters will be sent to the node in the setup message
-		Group_Diffie_Hellman first(parameters);
-        Group_Diffie_Hellman intermediate(parameters);
-		Group_Diffie_Hellman last(parameters);
+		Group_Diffie_Hellman first;
+        Group_Diffie_Hellman intermediate;
+		Group_Diffie_Hellman last;
 
-        cout << "First's public key: " << first.parameters() << endl; //should be g and q
-        cout << "Intermediate's public key: " << intermediate.parameters() << endl;
-        cout << "Last's public key: " << last.parameters() << endl;
-        cout << "Gateway's public key: " << gateway.parameters() << endl;
+        // cout << "First's public key: " << first.parameters() << endl; //should be g and q
+        // cout << "Intermediate's public key: " << intermediate.parameters() << endl;
+        // cout << "Last's public key: " << last.parameters() << endl;
+        // cout << "Gateway's public key: " << gateway.parameters() << endl;
 
         Group_Diffie_Hellman::Round_Key first_round = first.insert_key(); //mod exp of the public key base to the power of its private key
 		//first send its round key to intermediate
@@ -65,7 +63,11 @@ int main()
 		Group_Diffie_Hellman::Round_Key intermediate_final = intermediate.insert_key(before_last_intermediate);
 		Group_Diffie_Hellman::Round_Key last_final = last.insert_key(before_last_last);
 
-        bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
+        // bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
+        bool ok1 = gateway_final.x == first_final.x && gateway_final.y == first_final.y && gateway_final.z == first_final.z;
+        bool ok2 = first_final.x == intermediate_final.x && first_final.y == intermediate_final.y && first_final.z == intermediate_final.z;
+        bool ok3 = intermediate_final.x == last_final.x && intermediate_final.y == last_final.y && intermediate_final.z == last_final.z;
+        bool ok = ok1 && ok2 && ok3;
         if(ok) {
             cout << "Shared key = " << gateway_final << endl;
             cout << "OK! The key shared among all members of the group is the same" << endl;
