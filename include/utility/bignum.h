@@ -234,6 +234,46 @@ public:
         }
     }
 
+    void invert_special() __attribute__((noinline)) { // _data = i, such that (_data * i) % _mod-1 = 1
+        auto _mod_special = _mod;
+        _mod_special.data[0] -= 1;
+
+        Bignum A(1), u, v, zero(0);
+        for(unsigned int i = 0; i < DIGITS; i++) {
+            u._data[i] = _data[i];
+            v._data[i] = _mod_special.data[i];
+        }
+        *this = 0;
+        while(u != zero) {
+            while(u.is_even()) {
+                u.divide_by_two();
+                if(A.is_even())
+                    A.divide_by_two();
+                else {
+                    bool carry = simple_add(A._data, A._data, _mod_special.data, DIGITS);
+                    A.divide_by_two(carry);
+                }
+            }
+            while(v.is_even()) {
+                v.divide_by_two();
+                if(is_even())
+                    divide_by_two();
+                else {
+                    bool carry = simple_add(_data, _data, _mod_special.data, DIGITS);
+                    divide_by_two(carry);
+                }
+            }
+
+            if(u >= v) {
+                u -= v;
+                A -= *this;
+            } else {
+                v-=u;
+                *this -= A;
+            }
+        }
+    }
+
     friend OStream &operator<<(OStream & out, const Bignum & b){
         unsigned int i;
         out << '[';
