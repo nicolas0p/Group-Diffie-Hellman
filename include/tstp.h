@@ -1364,6 +1364,34 @@ public:
         }
     };
 
+	// TSTP Group Diffie Hellman Security component
+    class GDH_Security: private NIC::Observer
+    {
+		friend class TSTP;
+
+    public:
+        GDH_Security() {
+            db<TSTP>(TRC) << "TSTP::GDH_Security()" << endl;
+        }
+        ~GDH_Security();
+
+        void bootstrap();
+
+        static bool synchronized() { return true; }
+
+        static void marshal(Buffer * buf);
+
+        void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf);
+
+		static Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes);
+
+    private:
+		static Group_Diffie_Hellman _gdh;
+		static GDH_State _GDH_state;
+		static GDH_Node_Type _GDH_node_type;
+		static Simple_List<Region::Space> _GDH_next;
+		static Group_Diffie_Hellman::Shared_Key _GDH_key;
+    };
 
     // TSTP Security
     class Security: private NIC::Observer
@@ -1490,8 +1518,6 @@ public:
         static void marshal(Buffer * buf);
 
         void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf);
-
-		static Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes);
 
     private:
         static void encrypt(const unsigned char * msg, const Peer * peer, unsigned char * out) {
@@ -1664,10 +1690,6 @@ public:
         static volatile bool _peers_lock;
         static Thread * _key_manager;
         static unsigned int _dh_requests_open;
-		static Group_Diffie_Hellman _gdh;
-		static GDH_State _GDH_state;
-		static GDH_Node_Type _GDH_node_type;
-		static Simple_List<Region::Space> _GDH_next;
 	};
 
     // TSTP Life Keeper explicitly asks for metadata whenever it's needed
@@ -1813,7 +1835,8 @@ private:
         Locator::marshal(buf);
         Timekeeper::marshal(buf);
         Router::marshal(buf);
-        Security::marshal(buf);
+		GDH_Security::marshal(buf);
+		Security::marshal(buf);
     }
 
     static Buffer * alloc(unsigned int size) {
