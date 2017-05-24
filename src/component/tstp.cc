@@ -420,7 +420,7 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 						if(TSTP::here() != TSTP::sink()) {
 							GDH_Setup_First* message = buf->frame()->data<GDH_Setup_First>();
 							Region::Space next = message->next();
-							_gdh = Group_Diffie_Hellman(message->parameters());
+							_gdh = Group_Diffie_Hellman();
 							Round_Key round_key = _gdh.insert_key();
 							//uses the randomly generated private key in the GDH object creation
 							_GDH_node_type = GDH_FIRST;
@@ -435,7 +435,7 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 					case GDH_SETUP_INTERMEDIATE: {
 						if(TSTP::here() != TSTP::sink()) {
 							GDH_Setup_Intermediate* message = buf->frame()->data<GDH_Setup_Intermediate>();
-							_gdh = Group_Diffie_Hellman(message->parameters());
+							_gdh = Group_Diffie_Hellman();
 							_GDH_next = Simple_List<Region::Space>(); //only correct for the first group id
 							List_Elements::Singly_Linked<Region::Space> *next = new List_Elements::Singly_Linked<Region::Space>(new Region::Space(message->next()));
 							_GDH_next.insert(next);
@@ -447,7 +447,7 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 						if(TSTP::here() != TSTP::sink()) {
 							GDH_Setup_Last* message = buf->frame()->data<GDH_Setup_Last>();
 							_GDH_next = message->next(); //its a list, how to do this transparently?
-							_gdh = Group_Diffie_Hellman(message->parameters());
+							_gdh = Group_Diffie_Hellman();
 							_GDH_node_type = GDH_LAST;
 							_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
 						}
@@ -468,7 +468,7 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
 								} break;
 								case GDH_LAST: {
 									//we will want the old round key here
-									Round_Key my_key = _gdh.insert_key(round_key); 
+									Round_Key my_key = _gdh.insert_key(round_key);
 									Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
 									new (resp->frame()) GDH_Response(message->group_id(), TSTP::sink(), round_key);
 									TSTP::marshal(resp);
@@ -618,7 +618,7 @@ void TSTP::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
     }
 
     Packet * packet = buf->frame()->data<Packet>();
-    
+
     if(packet->time() > now())
         return;
 
