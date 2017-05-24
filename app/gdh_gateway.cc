@@ -40,9 +40,9 @@ int main()
 	nodes.insert(&el_intermediate);
 	nodes.insert(&el_last);
 
-	//int g_id = TSTP::GDH_Security::begin_group_diffie_hellman(nodes);
+	int g_id = TSTP::GDH_Security::begin_group_diffie_hellman(nodes);
 
-	//cout << "Group id = " << g_id << endl;
+	cout << "Group id = " << g_id << endl;
 
     return 0;
 }
