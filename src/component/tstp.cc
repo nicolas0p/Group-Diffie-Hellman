@@ -270,7 +270,7 @@ Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> n
 	nodes.insert(&gateway);
 
 	Buffer* resp = TSTP::alloc(sizeof(GDH_Setup_Last));
-	new (resp->frame()) GDH_Setup_Last(group_id, *last, _gdh.parameters(), nodes);
+	new (resp->frame()) GDH_Setup_Last(group_id, *last, nodes);
 	TSTP::marshal(resp);
 	TSTP::_nic->send(resp);
 
@@ -282,7 +282,7 @@ Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> n
 		for(auto it = nodes.begin(); it; it++) {
 			resp = TSTP::alloc(sizeof(GDH_Setup_Intermediate));
 			Region::Space *current = it->object();
-			new (resp->frame()) GDH_Setup_Intermediate(group_id, *current, _gdh.parameters(), *next);
+			new (resp->frame()) GDH_Setup_Intermediate(group_id, *current, *next);
 			TSTP::marshal(resp);
 			TSTP::_nic->send(resp);
 			next = current;
@@ -292,7 +292,7 @@ Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> n
 	Region::Space* firsts_next = nodes.head()->object();
 
 	resp = TSTP::alloc(sizeof(GDH_Setup_First));
-	new (resp->frame()) GDH_Setup_First(group_id, *first, _gdh.parameters(), *firsts_next);
+	new (resp->frame()) GDH_Setup_First(group_id, *first, *firsts_next);
 	TSTP::marshal(resp);
 	TSTP::_nic->send(resp);
 

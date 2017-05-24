@@ -16,8 +16,8 @@ int main()
 
     cout << "EPOS Group Diffie-Hellman Test" << endl;
     cout << "Configuration: " << endl;
-    cout << "Group_Diffie_Hellman::SECRET_SIZE = " << Group_Diffie_Hellman::SECRET_SIZE << endl;
-    cout << "Group_Diffie_Hellman::PUBLIC_KEY_SIZE = " << Group_Diffie_Hellman::PUBLIC_KEY_SIZE << endl;
+    // cout << "Group_Diffie_Hellman::SECRET_SIZE = " << Group_Diffie_Hellman::SECRET_SIZE << endl;
+    // cout << "Group_Diffie_Hellman::PUBLIC_KEY_SIZE = " << Group_Diffie_Hellman::PUBLIC_KEY_SIZE << endl;
     cout << "sizeof(Group_Diffie_Hellman) = " << sizeof(Group_Diffie_Hellman) << endl;
     cout << "sizeof(Group_Diffie_Hellman::Public_Key) = " << sizeof(Group_Diffie_Hellman::Round_Key) << endl;
     cout << "sizeof(Group_Diffie_Hellman::Private_Key) = " << sizeof(Group_Diffie_Hellman::Private_Key) << endl;
@@ -58,11 +58,11 @@ int main()
 		Group_Diffie_Hellman::Round_Key intermediate_final = intermediate.insert_key(intermediate_missing_own);
 		Group_Diffie_Hellman::Round_Key last_final = last.insert_key(last_missing_own);
 
-        // bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
-        bool ok1 = gateway_final.x == first_final.x && gateway_final.y == first_final.y && gateway_final.z == first_final.z;
-        bool ok2 = first_final.x == intermediate_final.x && first_final.y == intermediate_final.y && first_final.z == intermediate_final.z;
-        bool ok3 = intermediate_final.x == last_final.x && intermediate_final.y == last_final.y && intermediate_final.z == last_final.z;
-        bool ok = ok1 && ok2 && ok3;
+        bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
+        // bool ok1 = gateway_final.x == first_final.x && gateway_final.y == first_final.y && gateway_final.z == first_final.z;
+        // bool ok2 = first_final.x == intermediate_final.x && first_final.y == intermediate_final.y && first_final.z == intermediate_final.z;
+        // bool ok3 = intermediate_final.x == last_final.x && intermediate_final.y == last_final.y && intermediate_final.z == last_final.z;
+        // bool ok = ok1 && ok2 && ok3;
         if(ok) {
             cout << "Shared key = " << gateway_final << endl;
             cout << "OK! The key shared among all members of the group is the same" << endl;
