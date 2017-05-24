@@ -845,9 +845,9 @@ public:
     // } __attribute__((packed)); // TODO
     };
 
-	typedef int Group_Id;
 	typedef Group_Diffie_Hellman::Parameters Parameters;
 	typedef Group_Diffie_Hellman::Round_Key Round_Key;
+	typedef Group_Diffie_Hellman::Group_Id Group_Id;
 
 	// Group Diffie-Hellman setup first node Security Bootstrap Control Message
     class GDH_Setup_First: public Control
@@ -1490,6 +1490,8 @@ public:
         static void marshal(Buffer * buf);
 
         void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf);
+
+		Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes);
 
     private:
         static void encrypt(const unsigned char * msg, const Peer * peer, unsigned char * out) {

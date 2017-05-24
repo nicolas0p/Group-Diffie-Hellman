@@ -249,6 +249,56 @@ Thread * TSTP::Security::_key_manager;
 unsigned int TSTP::Security::_dh_requests_open;
 
 typedef Group_Diffie_Hellman::Round_Key Round_Key;
+typedef Group_Diffie_Hellman::Group_Id Group_Id;
+
+//Function executed by the gateway to begin the key exchange algorithm
+Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> nodes)
+{
+	Group_Id group_id = 1/*TODO GDH random?*/;
+
+	if(TSTP::here() != TSTP::sink()) {
+		//only the gateway should run this function
+		return -1;
+	}
+
+	_gdh = Group_Diffie_Hellman();
+
+	Region::Space *last = nodes.remove_tail()->object();
+
+	auto gw = Region::Space(TSTP::here());
+	List_Elements::Singly_Linked<Region::Space> gateway = List_Elements::Singly_Linked<Region::Space>(&gw);
+	nodes.insert(&gateway);
+
+	Buffer* resp = TSTP::alloc(sizeof(GDH_Setup_Last));
+	new (resp->frame()) GDH_Setup_Last(group_id, *last, _gdh.parameters(), nodes);
+	TSTP::marshal(resp);
+	TSTP::_nic->send(resp);
+
+	nodes.remove(&gateway);
+
+	Region::Space* first = nodes.remove_head()->object();
+	Region::Space* next = last;
+	if(nodes.size() > 0) {
+		for(auto it = nodes.begin(); it; it++) {
+			resp = TSTP::alloc(sizeof(GDH_Setup_Intermediate));
+			Region::Space *current = it->object();
+			new (resp->frame()) GDH_Setup_Intermediate(group_id, *current, _gdh.parameters(), *next);
+			TSTP::marshal(resp);
+			TSTP::_nic->send(resp);
+			next = current;
+		}
+	}
+
+	Region::Space* firsts_next = nodes.head()->object();
+
+	resp = TSTP::alloc(sizeof(GDH_Setup_First));
+	new (resp->frame()) GDH_Setup_First(group_id, *first, _gdh.parameters(), *firsts_next);
+	TSTP::marshal(resp);
+	TSTP::_nic->send(resp);
+
+	_GDH_state = GDH_WAITING_GW;
+	return group_id;
+}
 
 // Methods
 void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)

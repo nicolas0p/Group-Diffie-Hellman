@@ -37,6 +37,7 @@ public:
 
     typedef Bignum Round_Key;
     typedef Bignum Private_Key;
+	typedef int Group_Id;
 
 	Group_Diffie_Hellman();
 	Group_Diffie_Hellman(const Parameters& parameters);
