@@ -35,17 +35,10 @@ Group_Diffie_Hellman::Group_Diffie_Hellman()
 	_private.randomize();
 }
 
-// Group_Diffie_Hellman::Parameters Group_Diffie_Hellman::parameters() const
-// {
-// 	return _parameters;
-// }
-
 Group_Diffie_Hellman::Round_Key Group_Diffie_Hellman::insert_key(Group_Diffie_Hellman::Round_Key round_key) const
 {
 	db<Diffie_Hellman>(TRC) << "Diffie_Hellman::round_key(round=" << round_key << ",priv=" << _private << ")" << endl;
-	// Round_Key result(round_key);
 
-  // result.modular_exponentiation(_private, _parameters.q());
 	round_key *= _private;
   db<Diffie_Hellman>(INF) << "Diffie_Hellman: round key = " << round_key << endl;
   return round_key;
@@ -54,13 +47,11 @@ Group_Diffie_Hellman::Round_Key Group_Diffie_Hellman::insert_key(Group_Diffie_He
 Group_Diffie_Hellman::Round_Key Group_Diffie_Hellman::insert_key() const
 {
   db<Diffie_Hellman>(TRC) << "Diffie_Hellman::round_key(round=" << _base_point << ",priv=" << _private << ")" << endl;
-	// Round_Key round_key(_parameters.base());
 	Group_Diffie_Hellman::Round_Key round_key;
 	new (&round_key.x) Bignum(_default_base_point_x, SECRET_SIZE);
 	new (&round_key.y) Bignum(_default_base_point_y, SECRET_SIZE);
 	round_key.z = 1;
 
-	// round_key.modular_exponentiation(_private, _parameters.q());
 	round_key *= _private;
 
 	db<Diffie_Hellman>(INF) << "Diffie_Hellman: round key = " << round_key << endl;
@@ -74,11 +65,6 @@ Group_Diffie_Hellman::Round_Key Group_Diffie_Hellman::remove_key(Group_Diffie_He
 
 	Private_Key private_inverse(_private);
 	private_inverse.invert();
-	// private_inverse._mod = Bignum(_parameters.q()); //how to set the mod? :(
-
-	// Round_Key result(round_key);
-
-	// result.modular_exponentiation(private_inverse, _parameters.q());
 
 	round_key *= private_inverse;
 
