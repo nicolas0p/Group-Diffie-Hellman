@@ -27,7 +27,7 @@ int main()
 
 	typedef TSTP::Region::Space Space;
 
-	//Lets say these nodes exist. We need to configure them in this way!
+	//Lets say these nodes exist. We need to configure them this way!
 	Space first(Space::Center(1,1,1));
 	Space intermediate(Space::Center(2,2,2));
 	Space last(Space::Center(3,3,3));
@@ -43,6 +43,18 @@ int main()
 	int g_id = TSTP::GDH_Security::begin_group_diffie_hellman(nodes);
 
 	cout << "Group id = " << g_id << endl;
+
+    GPIO g('C',3, GPIO::OUT); //led
+	bool b = false;
+
+	Group_Diffie_Hellman::Shared_Key init_value;
+	while(TSTP::GDH_Security::key() == init_value) {
+		b = !b;
+		g.set(b); //blink the led
+		for(volatile int t=0;t<0xfffff;t++);
+	}
+
+	cout << "Shared key = " << TSTP::GDH_Security::key() << endl;
 
     return 0;
 }

@@ -1385,6 +1385,8 @@ public:
 
 		static Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes);
 
+		static Group_Diffie_Hellman::Shared_Key key() {return _GDH_key;}; //TODO GDH REMOVE THIS. TESTING ONLY!
+
     private:
 		static Group_Diffie_Hellman _gdh;
 		static GDH_State _GDH_state;

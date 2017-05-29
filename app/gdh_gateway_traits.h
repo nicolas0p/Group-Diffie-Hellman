@@ -33,7 +33,6 @@ template<> struct Traits<Build>
     static const unsigned int NODES = 2; // > 1 => NETWORKING
 };
 
-
 // Utilities
 template<> struct Traits<Debug>
 {
@@ -41,6 +40,7 @@ template<> struct Traits<Debug>
     static const bool warning = true;
     static const bool info    = false;
     static const bool trace   = false;
+    static const bool debugged = true;
 };
 
 template<> struct Traits<Lists>: public Traits<void>
