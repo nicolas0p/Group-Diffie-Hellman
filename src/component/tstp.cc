@@ -249,11 +249,20 @@ Thread * TSTP::Security::_key_manager;
 unsigned int TSTP::Security::_dh_requests_open;
 
 typedef Group_Diffie_Hellman::Round_Key Round_Key;
+typedef Group_Diffie_Hellman::Shared_Key Shared_Key;
 typedef Group_Diffie_Hellman::Group_Id Group_Id;
 
+Group_Diffie_Hellman TSTP::GDH_Security::_gdh;
+TSTP::GDH_State TSTP::GDH_Security::_GDH_state;
+TSTP::GDH_Node_Type TSTP::GDH_Security::_GDH_node_type;
+Simple_List<TSTP::Region::Space> TSTP::GDH_Security::_GDH_next;
+Shared_Key TSTP::GDH_Security::_GDH_key;
+
 //Function executed by the gateway to begin the key exchange algorithm
-Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> nodes)
+Group_Id TSTP::GDH_Security::begin_group_diffie_hellman(Simple_List<Region::Space> nodes)
 {
+    db<TSTP>(TRC) << "TSTP::GDH_Security::begin_group_diffie_hellman()" << endl;
+
 	Group_Id group_id = 1/*TODO GDH random?*/;
 
 	if(TSTP::here() != TSTP::sink()) {
@@ -262,6 +271,7 @@ Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> n
 	}
 
 	_gdh = Group_Diffie_Hellman();
+	Parameters params = _gdh.parameters();
 
 	Region::Space *last = nodes.remove_tail()->object();
 
@@ -270,7 +280,7 @@ Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> n
 	nodes.insert(&gateway);
 
 	Buffer* resp = TSTP::alloc(sizeof(GDH_Setup_Last));
-	new (resp->frame()) GDH_Setup_Last(group_id, *last, nodes);
+	new (resp->frame()) GDH_Setup_Last(group_id, *last, params, nodes);
 	TSTP::marshal(resp);
 	TSTP::_nic->send(resp);
 
@@ -282,7 +292,7 @@ Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> n
 		for(auto it = nodes.begin(); it; it++) {
 			resp = TSTP::alloc(sizeof(GDH_Setup_Intermediate));
 			Region::Space *current = it->object();
-			new (resp->frame()) GDH_Setup_Intermediate(group_id, *current, *next);
+			new (resp->frame()) GDH_Setup_Intermediate(group_id, *current, params, *next);
 			TSTP::marshal(resp);
 			TSTP::_nic->send(resp);
 			next = current;
@@ -292,12 +302,135 @@ Group_Id TSTP::Security::begin_group_diffie_hellman(Simple_List<Region::Space> n
 	Region::Space* firsts_next = nodes.head()->object();
 
 	resp = TSTP::alloc(sizeof(GDH_Setup_First));
-	new (resp->frame()) GDH_Setup_First(group_id, *first, *firsts_next);
+	new (resp->frame()) GDH_Setup_First(group_id, *first, params, *firsts_next);
 	TSTP::marshal(resp);
 	TSTP::_nic->send(resp);
 
 	_GDH_state = GDH_WAITING_GW;
 	return group_id;
+}
+
+void TSTP::GDH_Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
+{
+    db<TSTP>(TRC) << "TSTP::GDH_Security::update(obs=" << obs << ",buf=" << buf << ")" << endl;
+
+	if(buf->is_microframe || !buf->destined_to_me || buf->frame()->data<Header>()->type() != CONTROL){
+		return; //we dont care if the this is the type of the message
+	}
+
+	db<TSTP>(TRC) << "TSTP::GDH_Security::update(): Control message received" << endl;
+
+	switch(buf->frame()->data<Control>()->subtype()) {
+		case GDH_SETUP_FIRST: {
+			if(TSTP::here() != TSTP::sink()) {
+				GDH_Setup_First* message = buf->frame()->data<GDH_Setup_First>();
+				Region::Space next = message->next();
+				_gdh = Group_Diffie_Hellman(message->parameters());
+				Round_Key round_key = _gdh.insert_key();
+				//uses the randomly generated private key in the GDH object creation
+				_GDH_node_type = GDH_FIRST;
+				_GDH_state = GDH_WAITING_POP;
+				//this node is waiting to remove its key from the round key
+                Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
+                new (resp->frame()) GDH_Round(message->group_id(), next, round_key);
+                TSTP::marshal(resp);
+				TSTP::_nic->send(resp);
+			}
+		} break;
+		case GDH_SETUP_INTERMEDIATE: {
+			if(TSTP::here() != TSTP::sink()) {
+				GDH_Setup_Intermediate* message = buf->frame()->data<GDH_Setup_Intermediate>();
+				_gdh = Group_Diffie_Hellman(message->parameters());
+				_GDH_next = Simple_List<Region::Space>(); //only correct for the first group id
+				List_Elements::Singly_Linked<Region::Space> *next = new List_Elements::Singly_Linked<Region::Space>(new Region::Space(message->next()));
+				_GDH_next.insert(next);
+				_GDH_node_type = GDH_INTERMEDIATE;
+				_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
+			}
+		} break;
+		case GDH_SETUP_LAST: {
+			if(TSTP::here() != TSTP::sink()) {
+				GDH_Setup_Last* message = buf->frame()->data<GDH_Setup_Last>();
+				_GDH_next = message->next(); //its a list, how to do this transparently?
+				_gdh = Group_Diffie_Hellman(message->parameters());
+				_GDH_node_type = GDH_LAST;
+				_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
+			}
+		} break;
+		case GDH_ROUND: {
+			GDH_Round * message = buf->frame()->data<GDH_Round>();
+			Round_Key round_key = message->round_key();
+			if(TSTP::here() != TSTP::sink()) {
+				switch(_GDH_node_type) {
+					case GDH_INTERMEDIATE: {
+						//calculate new partial key and send to next
+						round_key = _gdh.insert_key(round_key);
+						Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
+						Region::Space* next = _GDH_next.head()->object();
+						new (resp->frame()) GDH_Round(message->group_id(), *next, round_key);
+						TSTP::marshal(resp);
+						TSTP::_nic->send(resp);
+						_GDH_state = GDH_WAITING_POP;
+					} break;
+					case GDH_LAST: {
+						//we will want the old round key here
+						Round_Key my_key = _gdh.insert_key(round_key);
+						Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
+						new (resp->frame()) GDH_Response(message->group_id(), TSTP::sink(), round_key);
+						TSTP::marshal(resp);
+						TSTP::_nic->send(resp);
+						//send GDH_RESPONSE with round_key
+						for(auto next_el = _GDH_next.begin(); next_el != _GDH_next.end(); next_el++) {
+							resp = TSTP::alloc(sizeof(GDH_Broadcast));
+							Region::Space* next = next_el->object();
+							new (resp->frame()) GDH_Broadcast(message->group_id(), *next, my_key);
+							TSTP::marshal(resp);
+							TSTP::_nic->send(resp);
+						}
+						//send GDH_BROADCAST with my_key
+					} break;
+					default: break;
+				}
+			}
+		} break;
+		case GDH_BROADCAST: {
+			//can be received from two nodes. Last and gateway
+			GDH_Broadcast* message = buf->frame()->data<GDH_Broadcast>();
+			if(TSTP::here() != TSTP::sink()) {
+				if(_GDH_state == GDH_WAITING_POP) {
+					Round_Key round_key = message->round_key();
+					round_key = _gdh.remove_key(round_key);
+					Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
+					new (resp->frame()) GDH_Broadcast(message->group_id(), TSTP::sink(), round_key);
+					TSTP::marshal(resp);
+					TSTP::_nic->send(resp);
+					_GDH_state = GDH_WAITING_FINAL;
+				} else if(_GDH_state == GDH_WAITING_FINAL) {
+					Round_Key round_key = message->round_key();
+					round_key = _gdh.insert_key(round_key);
+					_GDH_key = round_key; //final key!
+				}
+			}
+		} break;
+		case GDH_RESPONSE: {
+			if(TSTP::here() == TSTP::sink()) {
+				GDH_Response* message = buf->frame()->data<GDH_Response>();
+				Region::Space origin = buf->frame()->data<Header>()->origin(); //source of the message. Address
+				Round_Key round_key = message->round_key();
+				round_key = _gdh.insert_key(round_key);
+				Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
+				new (resp->frame()) GDH_Broadcast(message->group_id(), origin, round_key);
+				TSTP::marshal(resp);
+				TSTP::_nic->send(resp);
+			}
+		} break;
+		default: break;
+	}
+}
+
+void TSTP::GDH_Security::marshal(Buffer * buf)
+{
+    db<TSTP>(TRC) << "TSTP::GDH_Security::marshal(buf=" << buf << ")" << endl;
 }
 
 // Methods
@@ -465,119 +598,9 @@ void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * bu
                             //CPU::int_enable();
                         }
                     } break;
-
-					case GDH_SETUP_FIRST: {
-						if(TSTP::here() != TSTP::sink()) {
-							GDH_Setup_First* message = buf->frame()->data<GDH_Setup_First>();
-							Region::Space next = message->next();
-							_gdh = Group_Diffie_Hellman();
-							Round_Key round_key = _gdh.insert_key();
-							//uses the randomly generated private key in the GDH object creation
-							_GDH_node_type = GDH_FIRST;
-							_GDH_state = GDH_WAITING_POP;
-							//this node is waiting to remove its key from the round key
-                            Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
-                            new (resp->frame()) GDH_Round(message->group_id(), next, round_key);
-                            TSTP::marshal(resp);
-                            TSTP::_nic->send(resp);
-						}
-					} break;
-					case GDH_SETUP_INTERMEDIATE: {
-						if(TSTP::here() != TSTP::sink()) {
-							GDH_Setup_Intermediate* message = buf->frame()->data<GDH_Setup_Intermediate>();
-							_gdh = Group_Diffie_Hellman();
-							_GDH_next = Simple_List<Region::Space>(); //only correct for the first group id
-							List_Elements::Singly_Linked<Region::Space> *next = new List_Elements::Singly_Linked<Region::Space>(new Region::Space(message->next()));
-							_GDH_next.insert(next);
-							_GDH_node_type = GDH_INTERMEDIATE;
-							_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
-						}
-					} break;
-					case GDH_SETUP_LAST: {
-						if(TSTP::here() != TSTP::sink()) {
-							GDH_Setup_Last* message = buf->frame()->data<GDH_Setup_Last>();
-							_GDH_next = message->next(); //its a list, how to do this transparently?
-							_gdh = Group_Diffie_Hellman();
-							_GDH_node_type = GDH_LAST;
-							_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
-						}
-					} break;
-					case GDH_ROUND: {
-						GDH_Round * message = buf->frame()->data<GDH_Round>();
-						Round_Key round_key = message->round_key();
-						if(TSTP::here() != TSTP::sink()) {
-							switch(_GDH_node_type) {
-								case GDH_INTERMEDIATE: {
-									//calculate new partial key and send to next
-									round_key = _gdh.insert_key(round_key);
-									Buffer* resp = TSTP::alloc(sizeof(GDH_Round));
-									Region::Space* next = _GDH_next.head()->object();
-									new (resp->frame()) GDH_Round(message->group_id(), *next, round_key);
-									TSTP::marshal(resp);
-									TSTP::_nic->send(resp);
-								} break;
-								case GDH_LAST: {
-									//we will want the old round key here
-									Round_Key my_key = _gdh.insert_key(round_key);
-									Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
-									new (resp->frame()) GDH_Response(message->group_id(), TSTP::sink(), round_key);
-									TSTP::marshal(resp);
-									TSTP::_nic->send(resp);
-									//send GDH_RESPONSE with round_key
-									for(auto next_el = _GDH_next.begin(); next_el != _GDH_next.end(); next_el++) {
-										resp = TSTP::alloc(sizeof(GDH_Broadcast));
-										Region::Space* next = next_el->object();
-										new (resp->frame()) GDH_Broadcast(message->group_id(), *next, my_key);
-										TSTP::marshal(resp);
-										TSTP::_nic->send(resp);
-									}
-									//send GDH_BROADCAST with my_key
-								} break;
-								default: break;
-							}
-						} else /*gateway*/ {
-							if(_GDH_state == GDH_WAITING_GW) {
-								//we should test this to make sure this round_key came from the last node!
-								round_key = _gdh.insert_key(round_key); //final key!
-								_GDH_key = round_key;
-							}
-						}
-					} break;
-					case GDH_BROADCAST: {
-						//can be received from two nodes. Last and gateway
-						GDH_Broadcast* message = buf->frame()->data<GDH_Broadcast>();
-						if(TSTP::here() != TSTP::sink()) {
-							if(_GDH_state == GDH_WAITING_POP) {
-								Round_Key round_key = message->round_key();
-								round_key = _gdh.remove_key(round_key);
-								Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
-								new (resp->frame()) GDH_Broadcast(message->group_id(), TSTP::sink(), round_key);
-								TSTP::marshal(resp);
-								TSTP::_nic->send(resp);
-							} else if(_GDH_state == GDH_WAITING_FINAL) {
-								Round_Key round_key = message->round_key();
-								round_key = _gdh.insert_key(round_key);
-								_GDH_key = round_key; //final key!
-							}
-						}
-					} break;
-					case GDH_RESPONSE: {
-						if(TSTP::here() == TSTP::sink()) {
-							GDH_Response* message = buf->frame()->data<GDH_Response>();
-							Region::Space origin = buf->frame()->data<Header>()->origin(); //source of the message. Address
-							Round_Key round_key = message->round_key();
-							round_key = _gdh.insert_key(round_key);
-							Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
-							new (resp->frame()) GDH_Broadcast(message->group_id(), origin, round_key);
-							TSTP::marshal(resp);
-							TSTP::_nic->send(resp);
-						}
-					} break;
-
                     default: break;
                 }
             }
-
             default: break;
         }
     }

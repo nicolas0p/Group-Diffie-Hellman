@@ -218,6 +218,13 @@ void TSTP::Router::bootstrap()
     TSTP::_nic->attach(this, NIC::TSTP);
 }
 
+void TSTP::GDH_Security::bootstrap()
+{
+    db<TSTP>(TRC) << "TSTP::GDH_Security::bootstrap()" << endl;
+
+    TSTP::_nic->attach(this, NIC::TSTP);
+}
+
 void TSTP::Security::bootstrap()
 {
     db<TSTP>(TRC) << "TSTP::Security::bootstrap()" << endl;
@@ -243,12 +250,14 @@ void TSTP::init(const NIC & nic)
     TSTP::Locator * locator = new (SYSTEM) TSTP::Locator;
     TSTP::Timekeeper * timekeeper = new (SYSTEM) TSTP::Timekeeper;
     TSTP::Router * router = new (SYSTEM) TSTP::Router;
+    TSTP::GDH_Security * gdh_security = new (SYSTEM) TSTP::GDH_Security;
     //TSTP::Security * security = new (SYSTEM) TSTP::Security;
     TSTP * tstp = new (SYSTEM) TSTP;
 
     locator->bootstrap();
     timekeeper->bootstrap();
     router->bootstrap();
+    gdh_security->bootstrap();
     //security->bootstrap();
 
     _nic->attach(tstp, NIC::TSTP);
