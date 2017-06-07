@@ -22,6 +22,15 @@ int main()
 
     Acceleration a(0, 1000000, Acceleration::ADVERTISED);
 
+    GPIO g('C',3, GPIO::OUT); //led
+	bool b = false;
+
+	for(int i = 0; i < 10; ++i) {
+		b = !b;
+		g.set(b); //blink the led
+		for(volatile int t=0;t<0xfffff;t++);
+	}
+
     Thread::self()->suspend();
 
     return 0;

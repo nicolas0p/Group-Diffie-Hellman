@@ -52,6 +52,7 @@ int main()
 		b = !b;
 		g.set(b); //blink the led
 		for(volatile int t=0;t<0xfffff;t++);
+		cout << "Not yet!" << endl;
 	}
 
 	cout << "Shared key = " << TSTP::GDH_Security::key() << endl;
