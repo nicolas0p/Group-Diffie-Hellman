@@ -13,6 +13,42 @@ static const unsigned int ITERATIONS = 50;
 int main()
 {
     unsigned int seed = Random::random();
+    Random::seed(seed);
+
+    cout << "Testing mod_exp function" << endl;
+    Group_Diffie_Hellman mod_exp_test;
+    cout << "base = " << mod_exp_test.base << endl;
+    cout << "q = " << mod_exp_test.q << endl;
+    cout << "_private  = " << mod_exp_test._private << endl;
+    Group_Diffie_Hellman::Round_Key mod_exp_1 = mod_exp_test.insert_key();
+    cout << "mod_exp_1 = pow(base, _private, q) # " << mod_exp_1 << endl;
+    Group_Diffie_Hellman::Round_Key mod_exp_2 = mod_exp_test.insert_key(mod_exp_1);
+    cout << "mod_exp_2 = pow(mod_exp_1, _private, q) # " << mod_exp_2 << endl;
+    Group_Diffie_Hellman::Round_Key mod_exp_3 = mod_exp_test.insert_key(mod_exp_2);
+    cout << "mod_exp_3 = pow(mod_exp_2, _private, q) # " << mod_exp_3 << endl;
+
+    cout << "Testing invert function" << endl;
+    Group_Diffie_Hellman invert_test;
+    cout << "base = " << invert_test.base << endl;
+    cout << "q = " << invert_test.q << endl;
+    cout << "_private  = " << invert_test._private << endl;
+    Group_Diffie_Hellman::Round_Key * egcd = invert_test.egcd(invert_test._private, invert_test.q);
+    cout << "egcd a = " << egcd[0] << ", b = " << egcd[1] << ", c = " << egcd[2] << endl;
+    Group_Diffie_Hellman::Round_Key inv = invert_test.mod_inv(invert_test._private, invert_test.q);
+    cout << "inv = " << inv << ", inv*private = " << (invert_test._private*inv)%invert_test.q << endl;
+
+    cout << "Testing insert then remove" << endl;
+    Group_Diffie_Hellman test_i_r;
+    cout << "base = " << test_i_r.base << endl;
+    cout << "q = " << test_i_r.q << endl;
+    cout << "_private  = " << test_i_r._private << endl;
+    Group_Diffie_Hellman::Round_Key public_i_r = test_i_r.insert_key();
+    cout << "public = " << public_i_r << endl;
+    Group_Diffie_Hellman::Round_Key _inverted = test_i_r.mod_inv(test_i_r._private, test_i_r.q-1);
+    cout << "_inverted = " << _inverted << endl;
+    Group_Diffie_Hellman::Round_Key removed_i_r = test_i_r.remove_key(public_i_r);
+    cout << "removed = " << removed_i_r << endl;
+    
 
     cout << "EPOS Group Diffie-Hellman Test" << endl;
     cout << "Configuration: " << endl;
@@ -23,20 +59,18 @@ int main()
     cout << "sizeof(Group_Diffie_Hellman::Private_Key) = " << sizeof(Group_Diffie_Hellman::Private_Key) << endl;
     cout << "Random seed = " << seed << endl;
     cout << "Iterations = " << ITERATIONS << endl;
-
+    
     unsigned int tests_failed = 0;
-
-    Random::seed(seed);
-
+    
     for(unsigned int it = 0; it < ITERATIONS; it++) {
         cout << endl;
         cout << "Iteration " << it << endl;
-
+    
 		Group_Diffie_Hellman gateway;
 		Group_Diffie_Hellman first;
         Group_Diffie_Hellman intermediate;
 		Group_Diffie_Hellman last;
-
+    
         Group_Diffie_Hellman::Round_Key first_round = first.insert_key(); //mod exp of the public key base to the power of its private key
 		//first send its round key to intermediate
 		Group_Diffie_Hellman::Round_Key intermediate_round = intermediate.insert_key(first_round); //mod exp of the number received to the power of its private key
@@ -57,7 +91,23 @@ int main()
 		Group_Diffie_Hellman::Round_Key first_final = first.insert_key(first_missing_own);
 		Group_Diffie_Hellman::Round_Key intermediate_final = intermediate.insert_key(intermediate_missing_own);
 		Group_Diffie_Hellman::Round_Key last_final = last.insert_key(last_missing_own);
-
+    
+        cout << "first round " << first_round << endl;
+        cout << "intermediate round " << intermediate_round << endl;
+        cout << "last round " << last_round << endl;
+    
+        cout << "first removed " << first_removed << endl;
+        cout << "intermediate removed " << intermediate_removed << endl;
+    
+        cout << "first missing_own " << first_missing_own << endl;
+        cout << "intermediate missing_own " << intermediate_missing_own << endl;
+        cout << "last missing_own " << last_missing_own << endl;
+    
+        cout << "first final " << first_final << endl;
+        cout << "intermediate final " << intermediate_final << endl;
+        cout << "last final " << last_final << endl;
+        cout << "gateway final " << gateway_final << endl;
+    
         bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
         // bool ok1 = gateway_final.x == first_final.x && gateway_final.y == first_final.y && gateway_final.z == first_final.z;
         // bool ok2 = first_final.x == intermediate_final.x && first_final.y == intermediate_final.y && first_final.z == intermediate_final.z;
@@ -74,10 +124,10 @@ int main()
             cout << "Gateway's shared key: " << gateway_final << endl;
             cout << "ERROR! Shared keys do not match!" << endl;
         }
-
+    
         tests_failed += !ok;
     }
-
+    
     cout << endl;
     cout << "Tests finished with " << tests_failed << " error" << (tests_failed > 1 ? "s" : "") << " detected." << endl;
     cout << endl;
