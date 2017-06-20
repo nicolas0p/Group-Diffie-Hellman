@@ -1427,6 +1427,7 @@ public:
       static const int WINDOWS_MAX_SIZE;
       static const Time WINDOW_SIZE;
 
+      static Clock clock;
       static Queue<Messages_Count> _windows;
       static Messages_Count _messages_count;
       static Time _window_start;
@@ -1439,18 +1440,18 @@ public:
        * caso contrario, ++_messages_count
        */
       static void on_message_received() {
-        Clock clock;
-        adjust_window_start(clock.now() - _window_start);
+        _window_start = adjust_window_start();
 
         if ((clock.now() - _window_start) < WINDOW_SIZE) {
           add_window(_messages_count);
-          _messages_count = 0;          
+          _messages_count = 0;
         } else {
           ++_messages_count;
         }
       }
 
-      static void adjust_window_start(Time time_since_last_window) {
+      static Time adjust_window_start() {
+        Time time_since_last_window = clock.now() - _window_start;
         Time windows_since_last = time_since_last_window / WINDOW_SIZE;
 
         while (windows_since_last > 0) {
@@ -1459,7 +1460,7 @@ public:
         }
 
         Time window_offset = time_since_last_window % WINDOW_SIZE;
-        _window_start = now - window_offset;
+        return clock.now() - window_offset;
       }
 
       static void add_window(Message_Count window_messages_count) {
