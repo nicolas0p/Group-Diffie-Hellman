@@ -1395,6 +1395,51 @@ public:
 		static Group_Diffie_Hellman::Shared_Key _GDH_key;
     };
 
+    // TSTP Statistic component
+    class Statistic: private NIC::Observer
+    {
+		friend class TSTP;
+
+    public:
+        Statistic() {
+            db<TSTP>(TRC) << "TSTP::Statistic()" << endl;
+        }
+        ~Statistic();
+
+        void bootstrap();
+
+        static bool synchronized() { return true; }
+
+        static void marshal(Buffer * buf);
+
+        void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf);
+
+        /*
+         * Soma todos os valores de _windows e divide por _windows.size()
+         */
+        int messages_count_average();
+
+    private:
+      typedef unsigned long long Time;
+      typedef int Messages_Count;
+
+      static const int WINDOWS_MAX_SIZE;
+      static const Time WINDOW_SIZE;
+
+      static Queue<Messages_Count> _windows;
+      static Messages_Count _messages_count;
+      static Time window_start;
+
+      /*
+       * Verifica se tempo_agora - window_start < WINDOW_SIZE
+       * se for zera window_start,
+       * elimina na frene de _windows (se _windos.size() == WINDOWS_MAX_SIZE),
+       * adiciona _messages_count atras de _windows
+       * caso contrario, ++_messages_count
+       */
+      static void on_message_received();
+    };
+
     // TSTP Security
     class Security: private NIC::Observer
     {
