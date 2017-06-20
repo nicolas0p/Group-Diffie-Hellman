@@ -1421,7 +1421,7 @@ public:
         int messages_count_average();
 
     private:
-      typedef unsigned long long Time;
+      typedef Clock::Second Time;
       typedef int Messages_Count;
 
       static const int WINDOWS_MAX_SIZE;
@@ -1429,16 +1429,46 @@ public:
 
       static Queue<Messages_Count> _windows;
       static Messages_Count _messages_count;
-      static Time window_start;
+      static Time _window_start;
 
       /*
        * Verifica se tempo_agora - window_start < WINDOW_SIZE
-       * se for zera window_start,
-       * elimina na frene de _windows (se _windos.size() == WINDOWS_MAX_SIZE),
-       * adiciona _messages_count atras de _windows
+       * se for elimina na frene de _windows (se _windos.size() == WINDOWS_MAX_SIZE),
+       * adiciona _messages_count atras de _windows,
+       * zera window_start.
        * caso contrario, ++_messages_count
        */
-      static void on_message_received();
+      static void on_message_received() {
+        Clock clock;
+        adjust_window_start(clock.now() - _window_start);
+
+        if ((clock.now() - _window_start) < WINDOW_SIZE) {
+          add_window(_messages_count);
+          _messages_count = 0;          
+        } else {
+          ++_messages_count;
+        }
+      }
+
+      static void adjust_window_start(Time time_since_last_window) {
+        Time windows_since_last = time_since_last_window / WINDOW_SIZE;
+
+        while (windows_since_last > 0) {
+          add_window(0);
+          --windows_since_last;
+        }
+
+        Time window_offset = time_since_last_window % WINDOW_SIZE;
+        _window_start = now - window_offset;
+      }
+
+      static void add_window(Message_Count window_messages_count) {
+        if (_windows.size() == WINDOWS_MAX_SIZE) {
+          _windows.remove();
+        }
+
+        _windows.insert(window_messages_count);
+      }
     };
 
     // TSTP Security
