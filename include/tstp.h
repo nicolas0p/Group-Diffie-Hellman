@@ -1395,16 +1395,17 @@ public:
 		static Group_Diffie_Hellman::Shared_Key _GDH_key;
     };
 
-    // TSTP Statistic component
-    class Statistic: private NIC::Observer
+    // TSTP Messages Statistic component
+    class Messages_Statistic: private NIC::Observer
     {
-		friend class TSTP;
+
+    friend class TSTP;
 
     public:
-        Statistic() {
-            db<TSTP>(TRC) << "TSTP::Statistic()" << endl;
+        Messages_Statistic() {
+            db<TSTP>(TRC) << "TSTP::Messages_Statistic()" << endl;
         }
-        ~Statistic();
+        ~Messages_Statistic();
 
         void bootstrap();
 
