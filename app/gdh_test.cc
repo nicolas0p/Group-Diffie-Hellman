@@ -52,8 +52,6 @@ int main()
 
     cout << "EPOS Group Diffie-Hellman Test" << endl;
     cout << "Configuration: " << endl;
-    // cout << "Group_Diffie_Hellman::SECRET_SIZE = " << Group_Diffie_Hellman::SECRET_SIZE << endl;
-    // cout << "Group_Diffie_Hellman::PUBLIC_KEY_SIZE = " << Group_Diffie_Hellman::PUBLIC_KEY_SIZE << endl;
     cout << "sizeof(Group_Diffie_Hellman) = " << sizeof(Group_Diffie_Hellman) << endl;
     cout << "sizeof(Group_Diffie_Hellman::Public_Key) = " << sizeof(Group_Diffie_Hellman::Round_Key) << endl;
     cout << "sizeof(Group_Diffie_Hellman::Private_Key) = " << sizeof(Group_Diffie_Hellman::Private_Key) << endl;
@@ -92,21 +90,21 @@ int main()
 		Group_Diffie_Hellman::Round_Key intermediate_final = intermediate.insert_key(intermediate_missing_own);
 		Group_Diffie_Hellman::Round_Key last_final = last.insert_key(last_missing_own);
     
-        cout << "first round " << first_round << endl;
-        cout << "intermediate round " << intermediate_round << endl;
-        cout << "last round " << last_round << endl;
+        // cout << "first round " << first_round << endl;
+        // cout << "intermediate round " << intermediate_round << endl;
+        // cout << "last round " << last_round << endl;
     
-        cout << "first removed " << first_removed << endl;
-        cout << "intermediate removed " << intermediate_removed << endl;
+        // cout << "first removed " << first_removed << endl;
+        // cout << "intermediate removed " << intermediate_removed << endl;
     
-        cout << "first missing_own " << first_missing_own << endl;
-        cout << "intermediate missing_own " << intermediate_missing_own << endl;
-        cout << "last missing_own " << last_missing_own << endl;
+        // cout << "first missing_own " << first_missing_own << endl;
+        // cout << "intermediate missing_own " << intermediate_missing_own << endl;
+        // cout << "last missing_own " << last_missing_own << endl;
     
-        cout << "first final " << first_final << endl;
-        cout << "intermediate final " << intermediate_final << endl;
-        cout << "last final " << last_final << endl;
-        cout << "gateway final " << gateway_final << endl;
+        // cout << "first final " << first_final << endl;
+        // cout << "intermediate final " << intermediate_final << endl;
+        // cout << "last final " << last_final << endl;
+        // cout << "gateway final " << gateway_final << endl;
     
         bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
         // bool ok1 = gateway_final.x == first_final.x && gateway_final.y == first_final.y && gateway_final.z == first_final.z;
