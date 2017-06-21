@@ -75,7 +75,7 @@ int main()
 		//intermediate sends its round key to last
 		Group_Diffie_Hellman::Round_Key last_round = last.insert_key(intermediate_round);
 		//intermediate sends its round key to all the nodes, including the gateway
-		auto last_removed = intermediate_round; //the last node doesn't have to remove its private key because it already receives it ready from the intermediate node
+		Group_Diffie_Hellman::Round_Key last_removed = intermediate_round; //the last node doesn't have to remove its private key because it already receives it ready from the intermediate node
 		//intermediate sends the previous round key to the gateway
 		Group_Diffie_Hellman::Round_Key gateway_final = gateway.insert_key(last_round);
 		//first and intermediate remove their private keys from the round key
@@ -90,21 +90,21 @@ int main()
 		Group_Diffie_Hellman::Round_Key intermediate_final = intermediate.insert_key(intermediate_missing_own);
 		Group_Diffie_Hellman::Round_Key last_final = last.insert_key(last_missing_own);
     
-        // cout << "first round " << first_round << endl;
-        // cout << "intermediate round " << intermediate_round << endl;
-        // cout << "last round " << last_round << endl;
+        cout << "first round " << first_round << endl;
+        cout << "intermediate round " << intermediate_round << endl;
+        cout << "last round " << last_round << endl;
     
-        // cout << "first removed " << first_removed << endl;
-        // cout << "intermediate removed " << intermediate_removed << endl;
+        cout << "first removed " << first_removed << endl;
+        cout << "intermediate removed " << intermediate_removed << endl;
     
-        // cout << "first missing_own " << first_missing_own << endl;
-        // cout << "intermediate missing_own " << intermediate_missing_own << endl;
-        // cout << "last missing_own " << last_missing_own << endl;
+        cout << "first missing_own " << first_missing_own << endl;
+        cout << "intermediate missing_own " << intermediate_missing_own << endl;
+        cout << "last missing_own " << last_missing_own << endl;
     
-        // cout << "first final " << first_final << endl;
-        // cout << "intermediate final " << intermediate_final << endl;
-        // cout << "last final " << last_final << endl;
-        // cout << "gateway final " << gateway_final << endl;
+        cout << "first final " << first_final << endl;
+        cout << "intermediate final " << intermediate_final << endl;
+        cout << "last final " << last_final << endl;
+        cout << "gateway final " << gateway_final << endl;
     
         bool ok = gateway_final == first_final && first_final == intermediate_final && intermediate_final == last_final;
         // bool ok1 = gateway_final.x == first_final.x && gateway_final.y == first_final.y && gateway_final.z == first_final.z;

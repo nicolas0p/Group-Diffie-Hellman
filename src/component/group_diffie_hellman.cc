@@ -38,7 +38,6 @@ Group_Diffie_Hellman::Round_Key Group_Diffie_Hellman::insert_key() const
 	return round_key;
 }
 
-
 Group_Diffie_Hellman::Round_Key Group_Diffie_Hellman::remove_key(Group_Diffie_Hellman::Round_Key round_key) const
 {
 	db<Diffie_Hellman>(TRC) << "Diffie_Hellman::round_key(round=" << round_key << ",priv=" << _private_key << ")" << endl;
