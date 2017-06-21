@@ -12,24 +12,69 @@ class Group_Diffie_Hellman
 {
 private:
 	typedef unsigned long long Number;
-public:
-	static const Number base = 7;
-	static const Number q = 767410129;
 
+public:
 	typedef Number Round_Key;
 	typedef Number Private_Key;
+	typedef Number Shared_Key;
 	typedef int Group_Id;
 
-	Private_Key _private;
-	Group_Diffie_Hellman();
-	Group_Diffie_Hellman(const Parameters& parameters);
+	class Parameters
+	{
+			Number _base, _q;
+		public:
+			Parameters(const Parameters& params) : _base(params.base()), _q(params.q()) {}
+			Parameters(const Number& base, const Number& q) : _base(base), _q(q) {}
 
-	Parameters parameters() const;
+			Number base() const { return _base; }
+			Number q() const { return _q; }
+
+			friend OStream & operator<<(OStream & db, const Parameters & m) {
+				db << "(Parameters base=" << m._base << ", q=" << m._q << ")";
+				return db;
+			}
+	};
+
+private:
+	Private_Key generate_private_key(const Number& q) const;
+
+	Parameters _parameters;
+	Private_Key _private_key;
+
+public:
+	Group_Diffie_Hellman(const Parameters & params) :
+		_parameters(params),
+		_private_key(generate_private_key(params.q()))
+	{}
+
+	Group_Diffie_Hellman() :
+		_parameters(7, 767410129),
+		_private_key(generate_private_key(767410129))
+	{}
+
+	Parameters parameters() const { return _parameters; }
+	Private_Key private_key() const { return _private_key; }
 
 	Round_Key insert_key() const;
-	Round_Key insert_key(const Round_Key round_key) const;
+	Round_Key insert_key(Round_Key round_key) const;
 
-	static Round_Key mod_exp(Round_Key base, Round_Key exponent){
+	Round_Key remove_key(Round_Key round_key) const
+	{
+		// db<Diffie_Hellman>(TRC) << "Diffie_Hellman::round_key(round=" << round_key << ",priv=" << _private << ")" << endl;
+
+		round_key = mod_exp(round_key, inverted_private_key(), _parameters.q());
+
+		// db<Diffie_Hellman>(INF) << "Diffie_Hellman: round key = " << round_key << endl;
+
+		return round_key;
+	}
+
+	Round_Key inverted_private_key() const
+	{
+		return mod_inv(_private_key, _parameters.q()-1);
+	}
+
+	static Round_Key mod_exp(Round_Key base, Round_Key exponent, const Number& q){
 		int i = 1;
 		Number y = 1;
 		while(exponent > 1){
@@ -44,21 +89,6 @@ public:
 			i++;
 		}
 		return (base * y) % q;
-	}
-
-	static Round_Key invert(Private_Key private_key){
-		return mod_inv(private_key, q-1);
-	}
-
-	Round_Key remove_key(Round_Key round_key) const
-	{
-		// db<Diffie_Hellman>(TRC) << "Diffie_Hellman::round_key(round=" << round_key << ",priv=" << _private << ")" << endl;
-
-		round_key = mod_exp(round_key, invert(_private));
-
-		// db<Diffie_Hellman>(INF) << "Diffie_Hellman: round key = " << round_key << endl;
-
-		return round_key;
 	}
 
 	static Number * egcd(Number a, Number b){
@@ -94,7 +124,7 @@ public:
 
 		if(a != 1){
 			// raise exception modular inverse does not exist
-			// shouldnt ever happen
+			// shouldnt ever happen if the private key is done correctly
 			return -1;
 		}
 

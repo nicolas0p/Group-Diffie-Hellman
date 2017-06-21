@@ -17,9 +17,9 @@ int main()
 
     cout << "Testing mod_exp function" << endl;
     Group_Diffie_Hellman mod_exp_test;
-    cout << "base = " << mod_exp_test.base << endl;
-    cout << "q = " << mod_exp_test.q << endl;
-    cout << "_private  = " << mod_exp_test._private << endl;
+    cout << "base = " << mod_exp_test.parameters().base() << endl;
+    cout << "q = " << mod_exp_test.parameters().q() << endl;
+    cout << "_private  = " << mod_exp_test.private_key() << endl;
     Group_Diffie_Hellman::Round_Key mod_exp_1 = mod_exp_test.insert_key();
     cout << "mod_exp_1 = pow(base, _private, q) # " << mod_exp_1 << endl;
     Group_Diffie_Hellman::Round_Key mod_exp_2 = mod_exp_test.insert_key(mod_exp_1);
@@ -29,22 +29,22 @@ int main()
 
     cout << "Testing invert function" << endl;
     Group_Diffie_Hellman invert_test;
-    cout << "base = " << invert_test.base << endl;
-    cout << "q = " << invert_test.q << endl;
-    cout << "_private  = " << invert_test._private << endl;
-    Group_Diffie_Hellman::Round_Key * egcd = invert_test.egcd(invert_test._private, invert_test.q);
+    cout << "base = " << invert_test.parameters().base() << endl;
+    cout << "q = " << invert_test.parameters().q() << endl;
+    cout << "_private  = " << invert_test.private_key() << endl;
+    Group_Diffie_Hellman::Round_Key * egcd = invert_test.egcd(invert_test.private_key(), invert_test.parameters().q());
     cout << "egcd a = " << egcd[0] << ", b = " << egcd[1] << ", c = " << egcd[2] << endl;
-    Group_Diffie_Hellman::Round_Key inv = invert_test.mod_inv(invert_test._private, invert_test.q);
-    cout << "inv = " << inv << ", inv*private = " << (invert_test._private*inv)%invert_test.q << endl;
+    Group_Diffie_Hellman::Round_Key inv = invert_test.mod_inv(invert_test.private_key(), invert_test.parameters().q());
+    cout << "inv = " << inv << ", inv*private = " << (invert_test.private_key()*inv)%invert_test.parameters().q() << endl;
 
     cout << "Testing insert then remove" << endl;
     Group_Diffie_Hellman test_i_r;
-    cout << "base = " << test_i_r.base << endl;
-    cout << "q = " << test_i_r.q << endl;
-    cout << "_private  = " << test_i_r._private << endl;
+    cout << "base = " << test_i_r.parameters().base() << endl;
+    cout << "q = " << test_i_r.parameters().q() << endl;
+    cout << "_private  = " << test_i_r.private_key() << endl;
     Group_Diffie_Hellman::Round_Key public_i_r = test_i_r.insert_key();
     cout << "public = " << public_i_r << endl;
-    Group_Diffie_Hellman::Round_Key _inverted = test_i_r.mod_inv(test_i_r._private, test_i_r.q-1);
+    Group_Diffie_Hellman::Round_Key _inverted = test_i_r.mod_inv(test_i_r.private_key(), test_i_r.parameters().q()-1);
     cout << "_inverted = " << _inverted << endl;
     Group_Diffie_Hellman::Round_Key removed_i_r = test_i_r.remove_key(public_i_r);
     cout << "removed = " << removed_i_r << endl;
