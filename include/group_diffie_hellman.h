@@ -5,6 +5,7 @@
 
 #include <system/config.h>
 #include <utility/ostream.h>
+#include <utility/malloc.h>
 
 __BEGIN_SYS
 
@@ -58,16 +59,7 @@ public:
 	Round_Key insert_key() const;
 	Round_Key insert_key(Round_Key round_key) const;
 
-	Round_Key remove_key(Round_Key round_key) const
-	{
-		// db<Diffie_Hellman>(TRC) << "Diffie_Hellman::round_key(round=" << round_key << ",priv=" << _private << ")" << endl;
-
-		round_key = mod_exp(round_key, inverted_private_key(), _parameters.q());
-
-		// db<Diffie_Hellman>(INF) << "Diffie_Hellman: round key = " << round_key << endl;
-
-		return round_key;
-	}
+	Round_Key remove_key(Round_Key round_key) const;
 
 	Round_Key inverted_private_key() const
 	{
