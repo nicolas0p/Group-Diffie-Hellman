@@ -7,6 +7,8 @@
 
 #include <utility/geometry.h>
 #include <rtc.h>
+#include <clock.h>
+#include <queue.h>
 
 __BEGIN_SYS
 
@@ -1413,7 +1415,7 @@ public:
 
         static void marshal(Buffer * buf);
 
-        void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf);
+        void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf) { on_message_received(); }
 
         /*
          * Soma todos os valores de _windows e divide por _windows.size()
