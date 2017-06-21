@@ -84,7 +84,7 @@ public:
 	}
 
 	static Number * egcd(Number a, Number b){
-		Number * result = new Number[3];
+		Number * result = new Number[3]();
 
 		if(a == 0){
 			result[0] = b;
