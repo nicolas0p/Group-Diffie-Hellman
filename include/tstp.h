@@ -7,8 +7,6 @@
 
 #include <utility/geometry.h>
 #include <rtc.h>
-#include <clock.h>
-#include <queue.h>
 
 __BEGIN_SYS
 
@@ -512,6 +510,8 @@ __END_SYS
 #include <utility/hash.h>
 #include <utility/string.h>
 #include <utility/array.h>
+#include <utility/queue.h>
+#include <clock.h>
 #include <network.h>
 #include <diffie_hellman.h>
 #include <group_diffie_hellman.h>
@@ -1417,30 +1417,25 @@ public:
 
         void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf) { on_message_received(); }
 
-        /*
-         * Soma todos os valores de _windows e divide por _windows.size()
-         */
+        void update_test() {
+          on_message_received();
+
+        }
+
         int messages_count_average();
 
-    private:
+    // private:
       typedef Clock::Second Time;
       typedef int Messages_Count;
 
-      static const int WINDOWS_MAX_SIZE;
-      static const Time WINDOW_SIZE;
+      static const int WINDOWS_MAX_SIZE = 10;
+      static const Time WINDOW_SIZE = 5;
 
       static Clock clock;
       static Queue<Messages_Count> _windows;
       static Messages_Count _messages_count;
       static Time _window_start;
 
-      /*
-       * Verifica se tempo_agora - window_start < WINDOW_SIZE
-       * se for elimina na frene de _windows (se _windos.size() == WINDOWS_MAX_SIZE),
-       * adiciona _messages_count atras de _windows,
-       * zera window_start.
-       * caso contrario, ++_messages_count
-       */
       static void on_message_received() {
         _window_start = adjust_window_start();
 
