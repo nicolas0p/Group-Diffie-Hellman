@@ -47,15 +47,15 @@ int main()
     GPIO g('C',3, GPIO::OUT); //led
 	bool b = false;
 
-	Group_Diffie_Hellman::Shared_Key init_value;
-	while(TSTP::GDH_Security::key() == init_value) {
+	volatile Group_Diffie_Hellman::Shared_Key init_value;
+	while(TSTP::GDH_Security::key(g_id) == init_value) {
 		b = !b;
 		g.set(b); //blink the led
 		for(volatile int t=0;t<0xfffff;t++);
 		cout << "Not yet!" << endl;
 	}
 
-	cout << "Shared key = " << TSTP::GDH_Security::key() << endl;
+	cout << "Shared key = " << TSTP::GDH_Security::key(g_id) << endl;
 
     return 0;
 }

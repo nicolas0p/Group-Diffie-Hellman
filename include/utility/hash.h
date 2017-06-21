@@ -120,6 +120,10 @@ public:
         return _synonyms.remove_rank(key);
     }
 
+	Element * operator[](const Key & key) {
+        return this->search_key(key);
+    }
+
 private:
     Vector<T, SIZE, Element> _vector;
     Simple_Ordered_List<T, Key, Element> _synonyms;

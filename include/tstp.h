@@ -1385,14 +1385,15 @@ public:
 
 		static Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes);
 
-		static Group_Diffie_Hellman::Shared_Key key() {return _GDH_key;}; //TODO GDH REMOVE THIS. TESTING ONLY!
+		static Group_Diffie_Hellman::Shared_Key key(const Group_Id & g_id) {return *_GDH_key[g_id]->object();}; //TODO GDH REMOVE THIS. TESTING ONLY!
 
     private:
-		static Group_Diffie_Hellman _gdh;
-		static GDH_State _GDH_state;
-		static GDH_Node_Type _GDH_node_type;
-		static Simple_List<Region::Space> _GDH_next;
-		static Group_Diffie_Hellman::Shared_Key _GDH_key;
+		static const int SIZE = 5;
+		static Simple_Hash<Group_Diffie_Hellman, SIZE, Group_Diffie_Hellman::Group_Id> _gdh;
+		static Simple_Hash<GDH_State, SIZE, Group_Diffie_Hellman::Group_Id> _GDH_state;
+		static Simple_Hash<GDH_Node_Type, SIZE, Group_Diffie_Hellman::Group_Id> _GDH_node_type;
+		static Simple_Hash<Simple_List<Region::Space>, SIZE, Group_Diffie_Hellman::Group_Id> _GDH_next;
+		static Simple_Hash<Group_Diffie_Hellman::Shared_Key, SIZE, Group_Diffie_Hellman::Group_Id> _GDH_key;
     };
 
     // TSTP Security
