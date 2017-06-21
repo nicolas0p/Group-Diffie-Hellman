@@ -433,6 +433,8 @@ void TSTP::GDH_Security::marshal(Buffer * buf)
     db<TSTP>(TRC) << "TSTP::GDH_Security::marshal(buf=" << buf << ")" << endl;
 }
 
+int TSTP::Messages_Statistic::_oldest_sample_index = 0;
+
 // Methods
 void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
 {

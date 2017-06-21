@@ -510,7 +510,7 @@ __END_SYS
 #include <utility/hash.h>
 #include <utility/string.h>
 #include <utility/array.h>
-#include <utility/queue.h>
+#include <utility/malloc.h>
 #include <clock.h>
 #include <network.h>
 #include <diffie_hellman.h>
@@ -1417,10 +1417,7 @@ public:
 
         void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf) { on_message_received(); }
 
-        void update_test() {
-          on_message_received();
-
-        }
+        void update_test() { on_message_received(); }
 
         int messages_count_average();
 
@@ -1429,43 +1426,44 @@ public:
       typedef int Messages_Count;
 
       static const int WINDOWS_MAX_SIZE = 10;
-      static const Time WINDOW_SIZE = 5;
+      static const Time SAMPLE_TIME = 5;
 
       static Clock clock;
-      static Queue<Messages_Count> _windows;
-      static Messages_Count _messages_count;
-      static Time _window_start;
+      static Messages_Count _windows[WINDOWS_MAX_SIZE];
+      static int _oldest_sample_index;
+      static Messages_Count _current_sample_messages_count;
+      static Time _sample_start_time;
 
       static void on_message_received() {
-        _window_start = adjust_window_start();
+        adjust_sample_and_windows();
 
-        if ((clock.now() - _window_start) < WINDOW_SIZE) {
-          add_window(_messages_count);
-          _messages_count = 0;
-        } else {
-          ++_messages_count;
-        }
+        ++_current_sample_messages_count;
       }
 
-      static Time adjust_window_start() {
-        Time time_since_last_window = clock.now() - _window_start;
-        Time windows_since_last = time_since_last_window / WINDOW_SIZE;
+      static Time adjust_sample_and_windows() {
+        const Time clock_now = clock.now();
+        const Time time_since_last_window = clock_now - _sample_start_time;
 
-        while (windows_since_last > 0) {
-          add_window(0);
+        Time windows_since_last = time_since_last_window / SAMPLE_TIME;
+        
+        if(windows_since_last > 0) {
+            replace_oldest_sample(_current_sample_messages_count);
+            _current_sample_messages_count = 0;
+        }
+        while (windows_since_last > 1) {
+          replace_oldest_sample(0);
           --windows_since_last;
         }
 
-        Time window_offset = time_since_last_window % WINDOW_SIZE;
-        return clock.now() - window_offset;
+        _sample_start_time = clock_now - time_since_last_window % SAMPLE_TIME;
+
+        return time_since_last_window > SAMPLE_TIME;
       }
 
-      static void add_window(Message_Count window_messages_count) {
-        if (_windows.size() == WINDOWS_MAX_SIZE) {
-          _windows.remove();
-        }
+      static void replace_oldest_sample(Messages_Count sample_messages_count) {
+          _windows[_oldest_sample_index] = sample_messages_count;
 
-        _windows.insert(window_messages_count);
+          _oldest_sample_index = (_oldest_sample_index + 1) % WINDOWS_MAX_SIZE; 
       }
     };
 
