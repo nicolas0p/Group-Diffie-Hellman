@@ -10,7 +10,7 @@ template<typename T>
 struct Traits
 {
     static const bool enabled = true;
-    static const bool debugged = false;
+    static const bool debugged = true;
     static const bool hysterically_debugged = false;
     typedef TLIST<> ASPECTS;
 };
@@ -30,15 +30,15 @@ template<> struct Traits<Build>
     static const unsigned int MODEL = eMote3;
 
     static const unsigned int CPUS = 1;
-    static const unsigned int NODES = 200; // > 1 => NETWORKING
+    static const unsigned int NODES = 20; // > 1 => NETWORKING
 };
 
 
 // Utilities
 template<> struct Traits<Debug>
 {
-    static const bool error   = false;
-    static const bool warning = false;
+    static const bool error   = true;
+    static const bool warning = true;
     static const bool info    = false;
     static const bool trace   = false;
 };
@@ -84,7 +84,7 @@ template<> struct Traits<Serial_Display>: public Traits<void>
 {
     static const bool enabled = true;
     enum {UART, USB};
-    static const int ENGINE = UART;
+    static const int ENGINE = USB;
     static const int COLUMNS = 80;
     static const int LINES = 24;
     static const int TAB_SIZE = 8;
@@ -206,13 +206,13 @@ template<> struct Traits<Smart_Plug>: public Traits<Machine_Common>
     static const bool enabled = false;
 
     enum { DIMMER, SWITCH, DISABLED };
-    static const unsigned int P1_ACTUATOR = DISABLED;
-    static const unsigned int P2_ACTUATOR = DISABLED;
+    static const unsigned int P1_ACTUATOR = SWITCH;
+    static const unsigned int P2_ACTUATOR = DIMMER;
     static const unsigned int PWM_TIMER_CHANNEL = 0;
     static const unsigned int PWM_PERIOD = 100; // us
 
     static const bool P1_power_meter_enabled = true;
-    static const bool P2_power_meter_enabled = false;
+    static const bool P2_power_meter_enabled = true;
 };
 
 template<> struct Traits<Hydro_Board>: public Traits<Machine_Common>
@@ -222,11 +222,11 @@ template<> struct Traits<Hydro_Board>: public Traits<Machine_Common>
     static const unsigned int INTERRUPT_DEBOUNCE_TIME = 100000; // us
 
     // Enable/disable individual relays / ADCs
-    static const bool P3_enabled = true;
+    static const bool P3_enabled = false;
     static const bool P4_enabled = false;
-    static const bool P5_enabled = true;
-    static const bool P6_enabled = true;
-    static const bool P7_enabled = true;
+    static const bool P5_enabled = false;
+    static const bool P6_enabled = false;
+    static const bool P7_enabled = false;
 };
 
 template<> struct Traits<Scratchpad>: public Traits<Machine_Common>
@@ -278,11 +278,6 @@ template<> struct Traits<M95>: public Traits<NIC>
     static const unsigned int STATUS_PIN = 1;
 };
 
-__END_SYS
-
-__BEGIN_SYS
-
-
 // Abstractions
 template<> struct Traits<Application>: public Traits<void>
 {
@@ -322,7 +317,6 @@ template<> struct Traits<Thread>: public Traits<void>
     static const unsigned int QUANTUM = 10000; // us
 
     static const bool trace_idle = hysterically_debugged;
-    static const bool debugged = false;
 };
 
 template<> struct Traits<Scheduler<Thread> >: public Traits<void>
@@ -363,7 +357,7 @@ template<> struct Traits<Network>: public Traits<void>
     static const unsigned int TIMEOUT = 10; // s
 
     // This list is positional, with one network for each NIC in Traits<NIC>::NICS
-    typedef LIST<TSTP> NETWORKS;
+    typedef LIST<TSTP, Quectel_HTTP> NETWORKS;
 };
 
 template<> struct Traits<ELP>: public Traits<Network>
@@ -375,17 +369,8 @@ template<> struct Traits<ELP>: public Traits<Network>
 
 template<> struct Traits<TSTP>: public Traits<Network>
 {
-    static const bool debugged = Traits<Network>::debugged || Traits<NIC>::promiscuous;
     static const bool enabled = NETWORKS::Count<TSTP>::Result;
-    static const bool sink = false;
-};
-
-template<typename S>
-class TSTP_MAC;
-template<> template <typename S> struct Traits<TSTP_MAC<S>>: public Traits<TSTP>
-{
-    //static const bool debugged = Traits<NIC>::promiscuous;
-    //static const bool hysterically_debugged = true;
+    static const bool sink = true;
 };
 
 template<> template <typename S> struct Traits<Smart_Data<S>>: public Traits<Network>

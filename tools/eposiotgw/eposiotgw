@@ -13,9 +13,9 @@ import requests
 parser = argparse.ArgumentParser(description='EPOS Serial->IoT Gateway')
 parser.add_argument('-d','--dev', help='EPOSMote III device descriptor file', default='/dev/ttyUSB0')
 parser.add_argument('-t','--timeout', help='Timeout for reading from mote', default=600)
-parser.add_argument('-u','--url', help='Post URL', default='http://iot.ufsc.br/api/put.php')
+parser.add_argument('-u','--url', help='Post URL', default='https://iot.ufsc.br/api/put.php')
 parser.add_argument('-c','--certificate', help='Your PEM certificate', required=True)
-parser.add_argument('-s','--server_certificate', help='Server verification certificate', default='ufsc_ca.crt')
+parser.add_argument('-s','--server_certificate', help='Server verification certificate', default='/usr/local/share/ca-certificates/ufsc_ca.crt')
 args = vars(parser.parse_args())
 
 DEV = args['dev']
@@ -62,7 +62,9 @@ if __name__ == "__main__":
     session = requests.Session()
     session.headers = {'Connection': 'close', 'Content-type' : 'application/octet-stream', 'Content-length' : 82}
     session.cert = MY_CERTIFICATE
-    session.verify = SERVER_CERTIFICATE
+    #TODO: server verification is not working
+    #session.verify = SERVER_CERTIFICATE
+    session.verify = False
 
     while True:
         try:

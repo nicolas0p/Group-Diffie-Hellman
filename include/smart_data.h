@@ -25,10 +25,10 @@ public:
         unsigned long long t0;
         unsigned long long t1;
 
-        //friend OStream & operator<<(OStream & os, const DB_Series & d) {
-        //    os << "{ve=" << d.version << ",u=" << d.unit << ",(" << d.x << "," << d.y << "," << d.z << ")+" << d.r << ",t=[" << d.t0 << "," << d.t1 << "]}";
-        //    return os;
-        //}
+        friend OStream & operator<<(OStream & os, const DB_Series & d) {
+            os << "{ve=" << d.version << ",u=" << d.unit << ",(" << d.x << "," << d.y << "," << d.z << ")+" << d.r << ",t=[" << d.t0 << "," << d.t1 << "]}";
+            return os;
+        }
     }__attribute__((packed));
 
     struct DB_Record {
@@ -41,13 +41,14 @@ public:
         unsigned char mac[16];
         DB_Series series;
 
-        //friend OStream & operator<<(OStream & os, const DB_Record & d) {
-        //    os << "{va=" << d.value << ",e=" << d.error << ",(" << d.x << "," << d.y << "," << d.z << "),t=" << d.t;
-        //    for(unsigned int i = 1; i < 16; i++)
-        //        os << "," << hex << d.mac[i];
-        //    os << dec << "],s=" << d.series << "}";
-        //    return os;
-        //}
+        friend OStream & operator<<(OStream & os, const DB_Record & d) {
+                            // FIXME: can't print doubles on eMote3
+            os << "{va=" << (float)d.value << ",e=" << d.error << ",(" << d.x << "," << d.y << "," << d.z << "),t=" << d.t;
+            for(unsigned int i = 1; i < 16; i++)
+                os << "," << hex << d.mac[i];
+            os << dec << "],s=" << d.series << "}";
+            return os;
+        }
     }__attribute__((packed));
 };
 
@@ -142,6 +143,14 @@ public:
         ret.series.t1 = TSTP::absolute(_interested->region().t1);
 
         ret.value = this->operator Value();
+        if(Traits<Build>::MODEL == Traits<Build>::eMote3) {
+            // FIXME: Something weird is going on with doubles on emote3
+            char aux1[8];
+            char * aux2 = reinterpret_cast<char *>(&ret.value);
+            memcpy(aux1, aux2, 8);
+            memcpy(aux2, aux1 + 4, 4);
+            memcpy(aux2 + 4, aux1, 4);
+        }
         ret.error = error();
         c = location();
         ret.x = c.x;

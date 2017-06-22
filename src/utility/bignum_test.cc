@@ -4,12 +4,10 @@
 #include <utility/string.h>
 #include <utility/bignum.h>
 #include <utility/random.h>
-// #include <utility/aes.h>
-// #include <utility/diffie_hellman.h>
 
 using namespace EPOS;
 
-const unsigned int ITERATIONS = 50;
+const unsigned int ITERATIONS = 125000;
 const unsigned int SIZE = 16;
 
 OStream cout;
@@ -31,8 +29,8 @@ int main()
     cout << "a = " << a << ", b = " << b << endl;
     cout << "a + b = " << a + b << endl;
 
-    a = Bignum<SIZE>(reinterpret_cast<const unsigned char *>("10000000000000000000000000000000"), 16);
-    b = Bignum<SIZE>(reinterpret_cast<const unsigned char *>("20000000000000000000000000000000"), 16);
+    a = Bignum<SIZE>("10000000000000000000000000000000", 16);
+    b = Bignum<SIZE>("20000000000000000000000000000000", 16);
     cout << "a = " << a << ", b = " << b << endl;
     a += b;
     cout << "a + b = " << a << endl;

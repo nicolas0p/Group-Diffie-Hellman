@@ -124,6 +124,7 @@ protected:
                     buf->is_new = false;
                     buf->is_microframe = true;
                     buf->microframe_count = mf->count();
+                    buf->offset = 1000000llu * (SLEEP_PERIOD - 2*G);
 
                     // Forge a TSTP identifier to make the radio notify listeners
                     mf->all_listen(false);
@@ -158,30 +159,24 @@ protected:
                 Microframe * mf = buf->frame()->data<Microframe>();
                 Frame_ID id = mf->id();
 
-                // Clear scheduled messages with same ID
-                for(Buffer::Element * el = _tx_schedule.head(); el; el = el->next()) {
-                    Buffer * b = el->object();
-                    if(b->id == id) {
-
-                        // Frame ID seen before. Skip it.
-
-                        if(!b->destined_to_me) {
-                            db<TSTP_MAC<Radio>>(INF) << "TSTP_MAC::pre_notify: ACK received: " << *mf << " at " << Radio::Timer::count2us(buf->sfd_time_stamp) << endl;
-                            _tx_schedule.remove(el);
-                            delete b;
+                // This is an explicit ACK. No data frame will follow it.
+                if((!mf->all_listen()) && (mf->hint() == 0)) {
+                    // Clear scheduled messages with same ID
+                    for(Buffer::Element * el = _tx_schedule.head(); el; el = el->next()) {
+                        Buffer * queued_buf = el->object();
+                        if(queued_buf->id == id) {
+                            if(!queued_buf->destined_to_me) {
+                                db<TSTP_MAC<Radio>>(TRC) << "TSTP_MAC::pre_notify: ACK received: " << *mf << " at " << Radio::Timer::count2us(buf->sfd_time_stamp) << endl;
+                                _tx_schedule.remove(el);
+                                delete queued_buf;
+                            }
                         }
-
-                        Time_Stamp data_time = buf->sfd_time_stamp + Timer::us2count(TIME_BETWEEN_MICROFRAMES) + mf->count() * Timer::us2count(TIME_BETWEEN_MICROFRAMES + MICROFRAME_TIME) - Timer::us2count(DATA_LISTEN_MARGIN);
-
-                        Watchdog::kick();
-                        if(state_machine_debugged)
-                            kout << SLEEP_DATA ;
-                        // State: Sleep until Data
-                        Timer::interrupt(data_time + Timer::us2count(DATA_SKIP_TIME), update_tx_schedule);
-
-                        CPU::int_enable();
-                        return false;
                     }
+                    Time_Stamp data_time = (buf->sfd_time_stamp + Timer::us2count(TIME_BETWEEN_MICROFRAMES) + mf->count() * Timer::us2count(TIME_BETWEEN_MICROFRAMES + MICROFRAME_TIME));
+                    Watchdog::kick();
+                    Timer::interrupt(data_time + Timer::us2count(DATA_SKIP_TIME), update_tx_schedule);
+                    CPU::int_enable();
+                    return false;
                 }
 
                 // Initialize Buffer Metainformation
@@ -191,8 +186,9 @@ protected:
                 buf->is_microframe = true;
                 buf->relevant = sniffer || mf->all_listen();
                 buf->trusted = false;
-                buf->sender_distance = mf->hint();
+                buf->hint = mf->hint();
                 buf->microframe_count = mf->count();
+                buf->offset = 1000000llu * (SLEEP_PERIOD - 2*G);
 
                 // Forge a TSTP identifier to make the radio notify listeners
                 mf->all_listen(false);
@@ -214,13 +210,14 @@ protected:
 
             // Initialize Buffer Metainformation
             buf->id = _receiving_data_id;
-            buf->sender_distance = _receiving_data_hint;
+            buf->hint = _receiving_data_hint;
             buf->is_new = false;
             buf->is_microframe = false;
             buf->trusted = false;
             buf->freed = false;
-            buf->attempts = 0;
+            buf->random_backoff_exponent = 0;
             buf->microframe_count = 0;
+            buf->offset = 1000000llu * (SLEEP_PERIOD - 2*G);
 
             db<TSTP_MAC<Radio>>(TRC) << "TSTP_MAC::pre_notify: Frame received: " << buf->frame() << " at " << Radio::Timer::count2us(buf->sfd_time_stamp) << endl;
 
@@ -237,7 +234,9 @@ protected:
             db<TSTP_MAC<Radio>>(TRC) << "post_notify(buf=" << buf << ")" << endl;
 
         if(buf->is_microframe && !sniffer) { // State: RX MF (part 3/3)
-            Time_Stamp data_time = buf->sfd_time_stamp + Timer::us2count(TIME_BETWEEN_MICROFRAMES) + buf->microframe_count * Timer::us2count(TIME_BETWEEN_MICROFRAMES + MICROFRAME_TIME) - Timer::us2count(DATA_LISTEN_MARGIN);
+            Time_Stamp data_time = buf->sfd_time_stamp + Timer::us2count(TIME_BETWEEN_MICROFRAMES) + buf->microframe_count * Timer::us2count(TIME_BETWEEN_MICROFRAMES + MICROFRAME_TIME);
+            if(data_time > buf->sfd_time_stamp + 2 * Timer::us2count(DATA_LISTEN_MARGIN))
+                data_time -= Timer::us2count(DATA_LISTEN_MARGIN);
 
             Watchdog::kick();
             if(state_machine_debugged)
@@ -245,18 +244,23 @@ protected:
 
             if(buf->relevant) { // Transition: [Relevant MF]
                 _receiving_data_id = buf->id;
-                _receiving_data_hint = buf->sender_distance;
+                _receiving_data_hint = buf->hint;
                 // State: Sleep until Data
                 Timer::interrupt(data_time, rx_data);
-            } else // Transition: [Irrelevant MF]
-                Timer::interrupt(data_time + Timer::us2count(DATA_SKIP_TIME), update_tx_schedule);
+            } else { // Transition: [Irrelevant MF]
+                // Clear scheduled messages with same ID
+                for(Buffer::Element * el = _tx_schedule.head(); el; el = el->next()) {
+                    Buffer * queued_buf = el->object();
+                    if(queued_buf->id == buf->id) {
+                        if(!queued_buf->destined_to_me) {
+                            db<TSTP_MAC<Radio>>(INF) << "TSTP_MAC::pre_notify: ACK received, ID=" << queued_buf->id << " at " << Timer::count2us(buf->sfd_time_stamp) << endl;
+                            _tx_schedule.remove(el);
+                            delete queued_buf;
+                        }
+                    }
+                }
 
-            if(Traits<TSTP_MAC>::debugged) {
-                Microframe * mf = buf->frame()->data<Microframe>();
-                // Rebuild Microframe for printing
-                mf->all_listen(buf->downlink);
-                mf->count(buf->microframe_count);
-                db<TSTP_MAC<Radio>>(INF) << "[RX][TSTP Microframe] " << *mf << endl;
+                Timer::interrupt(data_time + Timer::us2count(DATA_SKIP_TIME), update_tx_schedule);
             }
         }
 
@@ -278,20 +282,22 @@ public:
         buf->is_microframe = false;
         buf->trusted = false;
         buf->is_new = true;
-        buf->attempts = 0;
+        buf->random_backoff_exponent = 0;
         buf->microframe_count = 0;
+        buf->offset = 1000000llu * (SLEEP_PERIOD - 2*G);
     }
 
     unsigned int unmarshal(Buffer * buf, Address * src, Address * dst, Type * type, void * data, unsigned int size) {
         *src = Address::BROADCAST;
         *dst = Address::BROADCAST;
         *type = buf->frame()->data<Header>()->version();
-        memcpy(data, buf->frame()->data<Frame>(), min(buf->size(), size));
+        memcpy(data, buf->frame()->data<Frame>(), (buf->size() < size ? buf->size() : size));
         return buf->size();
     }
 
     int send(Buffer * buf) {
-        buf->id = id(buf);
+        if(buf->is_new)
+            buf->id = id(buf);
 
         if(sniffer) {
             delete buf;
@@ -300,24 +306,24 @@ public:
             // Components calculate the offset in microseconds according to their own metrics.
             // We finish the calculation here to keep SLEEP_PERIOD, G, and Timestamps
             // encapsulated by the MAC, and MAC::marshal() happens before the other components' marshal methods
-            buf->offset = Timer::us2count(((buf->offset * SLEEP_PERIOD) / (G*RADIO_RANGE)) * G);
+            buf->offset = Timer::us2count((buf->offset / (3*G)) * (3*G) / 1000000llu);
 
-            if(buf->offset < Timer::us2count(3*CCA_TIME))
-                buf->offset = Timer::us2count(3*CCA_TIME);
-            else if(buf->offset > Timer::us2count(SLEEP_PERIOD - CCA_TIME))
-                buf->offset = Timer::us2count(SLEEP_PERIOD - CCA_TIME);
+            if(buf->offset < Timer::us2count(3*G))
+                buf->offset = Timer::us2count(3*G);
+            else if(buf->offset > Timer::us2count(SLEEP_PERIOD - 2*G))
+                buf->offset = Timer::us2count(SLEEP_PERIOD - 2*G);
 
             // Check if we have a message with the same ID
             CPU::int_disable();
             Buffer::Element * next;
             for(Buffer::Element * el = _tx_schedule.head(); el; el = next) {
                 next = el->next();
-                Buffer * b = el->object();
-                if(b->id == buf->id) {
-                    unsigned int ret = buf->size();
-                    delete buf;
-                    CPU::int_enable();
-                    return ret;
+                Buffer * queued_buf = el->object();
+                if(queued_buf->id == buf->id) {
+                    if(_tx_pending && _tx_pending == queued_buf)
+                        _tx_pending = buf;
+                    _tx_schedule.remove(queued_buf->link());
+                    delete queued_buf;
                 }
             }
             _tx_schedule.insert(buf->link());
@@ -361,7 +367,7 @@ private:
             } else if(drop_expired && (b->deadline <= now_us)) {
                 _tx_schedule.remove(el);
                 delete b;
-            } else if((!_tx_pending) || ((!_tx_pending->destined_to_me) && ((b->destined_to_me) || (b->attempts < _tx_pending->attempts) || (b->deadline < _tx_pending->deadline))))
+            } else if((!_tx_pending) || ((!_tx_pending->destined_to_me) && ((b->destined_to_me) || (b->random_backoff_exponent < _tx_pending->random_backoff_exponent) || (b->deadline < _tx_pending->deadline))))
                 _tx_pending = b;
             el = next;
         }
@@ -369,7 +375,7 @@ private:
 
         if(_tx_pending) { // Transition: [TX pending]
             // State: Backoff CCA (Backoff part)
-            new (&_mf) Microframe((!_tx_pending->destined_to_me) && _tx_pending->downlink, _tx_pending->id, N_MICROFRAMES - 1, _tx_pending->my_distance);
+            new (&_mf) Microframe((!_tx_pending->destined_to_me) && _tx_pending->downlink, _tx_pending->id, N_MICROFRAMES - 1, _tx_pending->hint);
             Radio::power(Power_Mode::LIGHT);
             Radio::copy_to_nic(&_mf, sizeof(Microframe));
 
@@ -381,21 +387,24 @@ private:
             // based on number of transmission attempts.
             // This prevents permanent inteference by a given pair of nodes, and
             // makes unresponded messages have the lowest priorities
-            _tx_pending->attempts++;
-            unsigned long long offset;
+            _tx_pending->random_backoff_exponent++;
+            Time_Stamp offset;
             offset = _tx_pending->offset;
-            unsigned int lim = pow(2u, _tx_pending->attempts);
+            unsigned int lim = pow(2u, _tx_pending->random_backoff_exponent);
             if(_tx_pending->destined_to_me) {
-                offset -= (Random::random() % lim) * Timer::us2count(CCA_TIME);
-                if((offset < Timer::us2count(CCA_TIME)) || (offset > Timer::us2count(SLEEP_PERIOD - CCA_TIME))) {
-                    offset = Timer::us2count(CCA_TIME);
-                    _tx_pending->attempts--;
+                offset -= (Random::random() % lim) * Timer::us2count(G);
+                if((offset < Timer::us2count(G)) || (offset > Timer::us2count(SLEEP_PERIOD))) {
+                    offset = Timer::us2count(G);
+                    _tx_pending->random_backoff_exponent--;
                 }
             } else {
-                offset += (Random::random() % lim) * Timer::us2count(CCA_TIME);
-                if((offset < Timer::us2count(3*CCA_TIME)) || (offset > Timer::us2count(SLEEP_PERIOD - CCA_TIME))) {
-                    offset = Timer::us2count(SLEEP_PERIOD - CCA_TIME);
-                    _tx_pending->attempts--;
+                offset += (Random::random() % lim) * Timer::us2count(G);
+                if(offset < Timer::us2count(3*G)) {
+                    offset = Timer::us2count(3*G);
+                    _tx_pending->random_backoff_exponent--;
+                } else if(offset > Timer::us2count(SLEEP_PERIOD)) {
+                    offset = Timer::us2count(SLEEP_PERIOD);
+                    _tx_pending->random_backoff_exponent--;
                 }
             }
 
@@ -433,7 +442,7 @@ private:
                 while(!Radio::tx_done());
                 Radio::copy_to_nic(&_mf, sizeof(Microframe));
                 //tx_mf(0);
-                Timer::interrupt(_mf_time, tx_mf);
+                Timer::interrupt(_mf_time - Timer::us2count(TX_DELAY), tx_mf);
             } else { // Transition: [Channel busy]
                 rx_mf(0);
             }
@@ -450,6 +459,7 @@ private:
         if(Traits<TSTP_MAC>::hysterically_debugged)
             db<TSTP_MAC<Radio>>(TRC) << "TSTP_MAC::rx_mf(id=" << id << ")" << endl;
 
+        _in_rx_data = false;
         _in_rx_mf = true;
 
         // If timeout is reached, Transition: [No MF]
@@ -498,13 +508,13 @@ private:
             if(_mf.dec_count() > 0) {
                 while(!Radio::tx_done());
                 Radio::copy_to_nic(&_mf, sizeof(Microframe));
-                Timer::interrupt(_mf_time, tx_mf);
+                Timer::interrupt(_mf_time - Timer::us2count(TX_DELAY), tx_mf);
             } else {
                 // The precise time when this frame is actually sent by the physical layer
                 _tx_pending->frame()->data<Header>()->last_hop_time(_mf_time + Timer::us2count(TX_DELAY + Tu));
                 while(!Radio::tx_done());
                 Radio::copy_to_nic(_tx_pending->frame(), _tx_pending->size());
-                Timer::interrupt(_mf_time, tx_data);
+                Timer::interrupt(_mf_time - Timer::us2count(TX_DELAY), tx_data);
                 //while(Timer::read() < _mf_time);
                 //tx_data(0);
                 //return;
@@ -543,7 +553,6 @@ private:
 
         // State: Sleep S
         Radio::power(Power_Mode::SLEEP);
-        Watchdog::kick();
         if(state_machine_debugged)
             kout << SLEEP_S;
         Timer::interrupt(_mf_time + Timer::us2count(SLEEP_PERIOD), rx_mf);

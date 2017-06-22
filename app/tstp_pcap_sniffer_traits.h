@@ -84,7 +84,7 @@ template<> struct Traits<Serial_Display>: public Traits<void>
 {
     static const bool enabled = true;
     enum {UART, USB};
-    static const int ENGINE = UART;
+    static const int ENGINE = USB;
     static const int COLUMNS = 80;
     static const int LINES = 24;
     static const int TAB_SIZE = 8;
@@ -247,14 +247,14 @@ template<> struct Traits<NIC>: public Traits<Machine_Common>
     // NICS that don't have a network in Traits<Network>::NETWORKS will not be enabled
     typedef LIST<CC2538, M95> NICS;
     static const unsigned int UNITS = NICS::Length;
-    static const bool promiscuous = false;
+    static const bool promiscuous = true;
 };
 
 template<> struct Traits<CC2538>: public Traits<NIC>
 {
     static const unsigned int UNITS = NICS::Count<CC2538>::Result;
     static const unsigned int RECEIVE_BUFFERS = 20; // per unit
-    static const bool gpio_debug = false;
+    static const bool gpio_debug = true;
     static const bool reset_backdoor = true;
     static const unsigned int DEFAULT_CHANNEL = 26;
 };
@@ -303,7 +303,7 @@ template<> struct Traits<System>: public Traits<void>
     static const unsigned long LIFE_SPAN = 1 * YEAR; // in seconds
     static const unsigned int DUTY_CYCLE = 10000; // in ppm
 
-    static const bool reboot = true;
+    static const bool reboot = false;
 
     static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
     static const unsigned int HEAP_SIZE = (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
@@ -322,7 +322,6 @@ template<> struct Traits<Thread>: public Traits<void>
     static const unsigned int QUANTUM = 10000; // us
 
     static const bool trace_idle = hysterically_debugged;
-    static const bool debugged = false;
 };
 
 template<> struct Traits<Scheduler<Thread> >: public Traits<void>
