@@ -121,7 +121,7 @@ cortex_DEBUGGER         := arm-none-eabi-gdb
 ifndef ACM
 ACM = 0
 endif
-cortex_FLASHER          = $(TOOLS)/eposflash/eposflash-$(MMOD) -d /dev/ttyACM0 -f
+cortex_FLASHER          = $(TOOLS)/eposflash/eposflash-$(MMOD) -d /dev/ttyACM$(ACM) -f
 
 atmega_CC_FLAGS         := -mmcu=atmega128 -Wno-inline
 atmega_AS_FLAGS         := -mmcu=atmega128
