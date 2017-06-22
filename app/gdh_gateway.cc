@@ -40,17 +40,16 @@ int main()
 	nodes.insert(&el_intermediate);
 	nodes.insert(&el_last);
 
-	int g_id = TSTP::GDH_Security::begin_group_diffie_hellman(nodes);
+	int g_id = TSTP::GDH_Security::begin_group_diffie_hellman(nodes, 1);
 
 	cout << "Group id = " << g_id << endl;
 
-    GPIO g('C',3, GPIO::OUT); //led
-	bool b = false;
+    //GPIO g('C',3, GPIO::OUT); //led
+	//bool b = false;
 
-	volatile Group_Diffie_Hellman::Shared_Key init_value;
-	while(TSTP::GDH_Security::key(g_id) == init_value) {
-		b = !b;
-		g.set(b); //blink the led
+	while(TSTP::GDH_Security::get_group_ids().size() == 0) {
+		//b = !b;
+		//g.set(b); //blink the led
 		for(volatile int t=0;t<0xfffff;t++);
 		cout << "Not yet!" << endl;
 	}

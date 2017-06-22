@@ -33,14 +33,14 @@ template<> struct Traits<Build>
     static const unsigned int NODES = 2; // > 1 => NETWORKING
 };
 
+
 // Utilities
 template<> struct Traits<Debug>
 {
     static const bool error   = true;
     static const bool warning = true;
-    static const bool info    = true;
-    static const bool trace   = true;
-    static const bool debugged = true;
+    static const bool info    = false;
+    static const bool trace   = false;
 };
 
 template<> struct Traits<Lists>: public Traits<void>
@@ -84,7 +84,7 @@ template<> struct Traits<Serial_Display>: public Traits<void>
 {
     static const bool enabled = true;
     enum {UART, USB};
-    static const int ENGINE = UART;
+    static const int ENGINE = USB;
     static const int COLUMNS = 80;
     static const int LINES = 24;
     static const int TAB_SIZE = 8;
@@ -201,7 +201,7 @@ template<> struct Traits<ELP>: public Traits<Network>
 template<> struct Traits<TSTP>: public Traits<Network>
 {
     static const bool enabled = NETWORKS::Count<TSTP>::Result;
-    static const bool sink = true;
+    static const bool sink = false;
 };
 
 template<> template <typename S> struct Traits<Smart_Data<S>>: public Traits<Network>

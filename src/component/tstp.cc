@@ -287,11 +287,13 @@ TSTP::GDH_Node_Type * p_GDH_INTERMEDIATE = new TSTP::GDH_Node_Type(TSTP::GDH_INT
 TSTP::GDH_Node_Type * p_GDH_LAST = new TSTP::GDH_Node_Type(TSTP::GDH_LAST);
 
 //Function executed by the gateway to begin the key exchange algorithm
-Group_Id TSTP::GDH_Security::begin_group_diffie_hellman(Simple_List<Region::Space> nodes)
+Group_Id TSTP::GDH_Security::begin_group_diffie_hellman(Simple_List<Region::Space> nodes, Group_Id group_id)
 {
     db<TSTP>(TRC) << "TSTP::GDH_Security::begin_group_diffie_hellman()" << endl;
 
-	Group_Id group_id = Random::random();
+	if(group_id == 0) {
+		group_id = Random::random();
+	}
 
 	if(TSTP::here() != TSTP::sink()) {
 		//only the gateway should run this function

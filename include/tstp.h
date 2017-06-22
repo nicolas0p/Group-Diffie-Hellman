@@ -878,7 +878,7 @@ public:
         Region::Space _next;
         Parameters _parameters;
 		Group_Id _group_id;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -911,7 +911,7 @@ public:
         Region::Space _next;
         Parameters _parameters;
 		Group_Id _group_id;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -945,7 +945,7 @@ public:
         Simple_List<Region::Space> _next; //TODO GDH Should we use something else instead of a linked list?
         Parameters _parameters;
 		Group_Id _group_id;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -976,7 +976,7 @@ public:
 		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -1007,7 +1007,7 @@ public:
 		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -1038,7 +1038,7 @@ public:
 		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -1383,7 +1383,9 @@ public:
 
         void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf);
 
-		static Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes);
+		static Group_Id begin_group_diffie_hellman(Simple_List<Region::Space> nodes, int group_id = 0);
+
+		static Simple_List<Group_Diffie_Hellman::Group_Id, List_Elements::Singly_Linked<Group_Diffie_Hellman::Group_Id>> get_group_ids(){return _GDH_key.get_keys();};
 
 		static Group_Diffie_Hellman::Shared_Key key(const Group_Id & g_id) {return *_GDH_key[g_id]->object();}; //TODO GDH REMOVE THIS. TESTING ONLY!
 

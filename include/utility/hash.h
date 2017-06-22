@@ -120,6 +120,14 @@ public:
         return _synonyms.remove_rank(key);
     }
 
+	Simple_List<Key, List_Elements::Singly_Linked<Key>> get_keys() {
+		Simple_List<Key, List_Elements::Singly_Linked<Key>> keys;
+		for(unsigned int i = 0; i < _vector.size(); ++i) {
+			keys.insert(new List_Elements::Singly_Linked<Key>(new int(_vector[i]->rank())));
+		}
+		return keys;
+	}
+
 	Element * operator[](const Key & key) {
         return this->search_key(key);
     }
