@@ -41,20 +41,20 @@ public:
     void sense(unsigned int interval, unsigned int times, Sense* const values){
         for(int i = 0; i < times; ++i){
             values[i] = evaluate_strategy();
-            Ultrasonic_Sensor_HC_SR04::Timer::delay(interval);
+            Machine::delay(interval);
         }
     }
 
     void sense(unsigned int interval, Sense_Callback f){
         while(1){
             f(evaluate_strategy());
-            Ultrasonic_Sensor_HC_SR04::Timer::delay(interval);
+            Machine::delay(interval);
         }
     }
 
     void sense(Sense_Callback_Dynamic f){
         while(1){
-            Ultrasonic_Sensor_HC_SR04::Timer::delay(f(evaluate_strategy()));
+            Machine::delay(f(evaluate_strategy()));
         }
     }
 
@@ -70,13 +70,13 @@ protected:
 
         #ifdef HCSR04_RELAY // if using relays
         _sensor.enable();
-        Ultrasonic_Sensor_HC_SR04::Timer::delay(Sample_strategy::RELAY_DELAY);
+        Machine::delay(Sample_strategy::RELAY_DELAY);
         #endif
 
         for(int i = 0; i < Sample_strategy::NUMBER_OF_READS; ++i){
             Sense sense = _sensor.sense();
             ret += (sense == -1)? 0 : sense;
-            Ultrasonic_Sensor_HC_SR04::Timer::delay(Sample_strategy::INTERVAL_BETWEEN_READS);
+            Machine::delay(Sample_strategy::INTERVAL_BETWEEN_READS);
         }
 
         #ifdef HCSR04_RELAY // if using relays

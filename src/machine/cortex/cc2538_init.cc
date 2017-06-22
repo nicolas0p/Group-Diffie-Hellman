@@ -41,7 +41,7 @@ CC2538::CC2538(unsigned int unit): MAC(unit), _unit(unit), _rx_cur_consume(0), _
         xreg(FRMCTRL1) &= ~SET_RXENMASK_ON_TX; // Do not enter receive mode after ISTXON
     }
 
-    channel(26);
+    channel(Traits<CC2538>::DEFAULT_CHANNEL);
 
     if(Traits<CC2538>::gpio_debug) {
         // Enable debug signals to GPIO

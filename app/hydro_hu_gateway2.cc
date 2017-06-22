@@ -72,13 +72,12 @@ int tstp_work()
 
     cout << "epoch now = " << TSTP::absolute(TSTP::now()) / 1000000 << endl;
 
-    TSTP::Coordinates center_station1(50,0,0);
-    TSTP::Coordinates center_station2(-6000,4500,0);
+    TSTP::Coordinates center_station1(6400,-4800,0);
+    TSTP::Coordinates center_station2(-4800,-6400,0);
 
     TSTP::Region region_station1(center_station1, 0, 0, -1);
     TSTP::Region region_station2(center_station2, 0, 0, -1);
 
-    Water_Flow flow0(0, INTEREST_EXPIRY, static_cast<Water_Flow::Mode>(Water_Flow::PRIVATE | Water_Flow::CUMULATIVE));
     Water_Flow flow1(region_station1, INTEREST_EXPIRY, INTEREST_PERIOD, Water_Flow::CUMULATIVE);
     Water_Flow flow2(region_station2, INTEREST_EXPIRY, INTEREST_PERIOD, Water_Flow::CUMULATIVE);
 
@@ -90,16 +89,12 @@ int tstp_work()
         Alarm::delay(10000000);
         cout << "...woke up" << endl;
 
-        Smart_Data_Common::DB_Record r0 = flow0.db_record();
-        cout << "r0 = " << r0 << endl;
         Smart_Data_Common::DB_Record r1 = flow1.db_record();
         cout << "r1 = " << r1 << endl;
         Smart_Data_Common::DB_Record r2 = flow2.db_record();
         cout << "r2 = " << r2 << endl;
 
         CPU::int_disable();
-        Storage::push(r0);
-        cout << "push r0 OK" << endl;
         Storage::push(r1);
         cout << "push r1 OK" << endl;
         Storage::push(r2);

@@ -22,23 +22,15 @@ typedef Smart_Data_Common::DB_Record DB_Record;
 typedef TSTP::Coordinates Coordinates;
 typedef TSTP::Region Region;
 
-const unsigned int INTEREST_PERIOD = 1 * 60 * 1000000;
+const unsigned int INTEREST_PERIOD = 5 * 60 * 1000000;
 const unsigned int INTEREST_EXPIRY = 2 * INTEREST_PERIOD;
 const unsigned int PRESENCE_EXPIRY = 15 * 60 * 1000000;
-
-void print(const DB_Series & d)
-{
-    for(unsigned int i = 0; i < sizeof(DB_Series); i++)
-        io.put(reinterpret_cast<const char *>(&d)[i]);
-    io.put('X'); io.put('X'); io.put('X'); io.put('Z');
-}
 
 void print(const DB_Record & d)
 {
     CPU::int_disable();
     for(unsigned int i = 0; i < sizeof(Smart_Data_Common::DB_Record); i++)
         io.put(reinterpret_cast<const char *>(&d)[i]);
-    io.put('X'); io.put('X'); io.put('X'); io.put('Z');
     CPU::int_enable();
 }
 
@@ -117,7 +109,6 @@ int main()
     }
 
     Alarm::delay(5000000);
-    io.put('X'); io.put('X'); io.put('X'); io.put('Z');
 
 
     // Interest center points
@@ -162,22 +153,8 @@ int main()
     Current data_lights1(region_lights1, INTEREST_EXPIRY, INTEREST_PERIOD);
     Luminous_Intensity data_lux0(region_lux0, INTEREST_EXPIRY, INTEREST_PERIOD);
     RFID data_rfid0(region_door0, INTEREST_EXPIRY, 0);
-    Switch data_door0(region_door0, INTEREST_EXPIRY, 12500000);
+    Switch data_door0(region_door0, INTEREST_EXPIRY, INTEREST_PERIOD);
     Presence data_presence0(region_presence0, PRESENCE_EXPIRY, 0);
-
-
-    // Output interests to serial
-    print(data_dummy0.db_series());
-    print(data_dummy1.db_series());
-    print(data_dummy2.db_series());
-    print(data_dummy5.db_series());
-    print(data_outlet0.db_series());
-    print(data_outlet1.db_series());
-    print(data_lights1.db_series());
-    print(data_lux0.db_series());
-    print(data_rfid0.db_series());
-    print(data_door0.db_series());
-    print(data_presence0.db_series());
 
 
     // Data transforms and aggregators

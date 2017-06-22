@@ -156,6 +156,7 @@ template<> struct Traits<CC2538>: public Traits<NIC>
     static const unsigned int RECEIVE_BUFFERS = 20; // per unit
     static const bool gpio_debug = true;
     static const bool reset_backdoor = false;
+    static const unsigned int DEFAULT_CHANNEL = 26;
 };
 
 template<> struct Traits<M95>: public Traits<NIC>

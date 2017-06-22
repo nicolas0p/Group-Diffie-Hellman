@@ -38,11 +38,11 @@ public:
     Bignum(unsigned int n = 0) __attribute__((noinline)) {
         *this = n;
     }
-    Bignum(const unsigned char * bytes, unsigned int len) {
+    Bignum(const void * bytes, unsigned int len) {
         for(unsigned int i = 0, j = 0; i < DIGITS; i++) {
             _data[i] = 0;
             for(unsigned int k = 0; k < sizeof(Digit) && j < len; k++, j++)
-                _data[i] += (bytes[j] << (8 * k));
+                _data[i] += (reinterpret_cast<const unsigned char *>(bytes)[j] << (8 * k));
         }
     }
 
@@ -223,7 +223,6 @@ public:
                     divide_by_two(carry);
                 }
             }
-
             if(u >= v) {
                 u -= v;
                 A -= *this;

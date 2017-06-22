@@ -21,6 +21,7 @@ TSTP::Locator::Peer TSTP::Locator::_peers[3];
 void TSTP::Locator::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
 {
     db<TSTP>(TRC) << "TSTP::Locator::update(obs=" << obs << ",buf=" << buf << ")" << endl;
+    buf->sender_distance = buf->hint; // This would fit better in the Router, but Timekeeper uses this info
     if(buf->is_microframe) {
         if(!synchronized())
             buf->relevant = true;
@@ -54,6 +55,8 @@ void TSTP::Locator::marshal(Buffer * buf)
     db<TSTP>(TRC) << "TSTP::Locator::marshal(buf=" << buf << ")" << endl;
     Coordinates dst = TSTP::destination(buf).center;
     buf->my_distance = here() - dst;
+    if(buf->is_new)
+        buf->sender_distance = buf->my_distance;
     buf->downlink = dst != TSTP::sink(); // This would fit better in the Router, but Timekeeper uses this info
     buf->frame()->data<Header>()->confidence(_confidence);
     Coordinates here = TSTP::here();
@@ -127,7 +130,7 @@ void TSTP::Timekeeper::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * 
                     db<TSTP>(INF) << "now() = " << now() << endl;
                 }
             } else if(_peer == header->last_hop()) { // Message from peer
-                Time_Stamp t0_new = header->last_hop_time() + Radio::Timer::us2count(IEEE802_15_4::SHR_SIZE * 1000000 / IEEE802_15_4::BYTE_RATE);;
+                Time_Stamp t0_new = header->last_hop_time() + Radio::Timer::us2count(IEEE802_15_4::SHR_SIZE * 1000000 / IEEE802_15_4::BYTE_RATE);
                 Time_Stamp t1_new = buf->sfd_time_stamp;
 
                 Offset adj = t0_new - t1_new;
@@ -183,6 +186,9 @@ void TSTP::Router::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
             Region dst = TSTP::destination(buf);
             buf->destined_to_me = ((header->origin() != TSTP::here()) && (dst.contains(TSTP::here(), dst.t0)));
             if(buf->destined_to_me || (buf->my_distance < buf->sender_distance)) {
+                // Do not forward messages that come from too far away, to avoid radio range asymmetry
+                if(abs(buf->sender_distance - buf->my_distance) > RADIO_RANGE)
+                    return;
 
                 // Forward or ACK the message
 
@@ -201,7 +207,7 @@ void TSTP::Router::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
                 send_buf->sender_distance = buf->sender_distance;
                 send_buf->is_new = false;
                 send_buf->is_microframe = false;
-                send_buf->attempts = 0;
+                send_buf->random_backoff_exponent = 0;
 
                 // Calculate offset
                 offset(send_buf);
@@ -213,6 +219,8 @@ void TSTP::Router::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
 
                 header->confidence(TSTP::Locator::_confidence);
                 header->time_request(!TSTP::Timekeeper::synchronized());
+
+                send_buf->hint = send_buf->my_distance;
 
                 TSTP::_nic->send(send_buf);
             }
@@ -226,6 +234,7 @@ void TSTP::Router::marshal(Buffer * buf)
     TSTP::Region dest = TSTP::destination(buf);
     buf->downlink = dest.center != TSTP::sink();
     buf->destined_to_me = (buf->frame()->data<Header>()->origin() != TSTP::here()) && (dest.contains(TSTP::here(), TSTP::now()));
+    buf->hint = buf->my_distance;
 
     offset(buf);
 }

@@ -1,7 +1,8 @@
- #define HCSR04_RELAY
+#define HCSR04_RELAY
 
 #include "sensor/ultrasonic_sensor_controller.h"
-#include "gpio.h"
+#include <alarm.h>
+#include <gpio.h>
 #include <utility/ostream.h>
 
 using namespace EPOS;
@@ -9,9 +10,9 @@ using namespace EPOS;
 OStream cout;
 
 int main(){
-    GPIO echo('c',7,GPIO::INPUT);
-    GPIO trigger('c',6,GPIO::OUTPUT);
-    GPIO relay('b',3,GPIO::OUTPUT);
+    GPIO echo('C',7,GPIO::IN);
+    GPIO trigger('C',6,GPIO::OUT);
+    GPIO relay('B',3,GPIO::OUT);
 
     Ultrasonic_Sensor_Controller controller(relay,trigger,echo);
 

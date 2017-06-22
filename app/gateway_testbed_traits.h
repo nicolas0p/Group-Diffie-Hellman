@@ -30,7 +30,7 @@ template<> struct Traits<Build>
     static const unsigned int MODEL = eMote3;
 
     static const unsigned int CPUS = 1;
-    static const unsigned int NODES = 20; // > 1 => NETWORKING
+    static const unsigned int NODES = 200; // > 1 => NETWORKING
 };
 
 
