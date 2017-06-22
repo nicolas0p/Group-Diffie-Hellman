@@ -13,7 +13,7 @@ __BEGIN_SYS
 class TSTP_Common: public IEEE802_15_4
 {
 protected:
-    static const unsigned int RADIO_RANGE = 1700; // Approximated radio range of nodes, in centimeters
+    static const unsigned int RADIO_RANGE = 8000; // Approximated radio range of nodes, in centimeters
     static const bool drop_expired = true;
 
 public:
@@ -1300,7 +1300,7 @@ public:
         typedef Radio::Timer::Time_Stamp Time_Stamp;
         typedef Radio::Timer::Offset Offset;
 
-        static const unsigned int SYNC_PERIOD = 300000000; // TODO
+        static const unsigned int SYNC_PERIOD = 12500000; // For 0.5ms maximum drift
 
     public:
         Timekeeper() {
@@ -1707,7 +1707,12 @@ public:
     private:
         static int life_keeper() {
             while(true) {
-                if(!(TSTP::Locator::synchronized() && TSTP::Timekeeper::synchronized() && TSTP::Router::synchronized() && TSTP::Security::synchronized())) {
+                if((TSTP::here() == TSTP::sink())
+                    || !(TSTP::Locator::synchronized()
+                        && TSTP::Timekeeper::synchronized()
+                        && TSTP::Router::synchronized()
+                        /*//TODOGDH//&& TSTP::GDH_Security::synchronized())*/
+                        /*&& TSTP::Security::synchronized())*/)) {
                     db<TSTP>(TRC) << "TSTP::Life_Keeper: sending keep alive message" << endl;
                     TSTP::keep_alive();
                 }
