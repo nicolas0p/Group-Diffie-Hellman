@@ -58,8 +58,9 @@ public:
 
 	Round_Key insert_key() const;
 	Round_Key insert_key(Round_Key round_key) const;
-
 	Round_Key remove_key(Round_Key round_key) const;
+
+private:
 
 	Round_Key inverted_private_key() const
 	{
@@ -83,36 +84,39 @@ public:
 		return (base * y) % q;
 	}
 
-	static Number * egcd(Number a, Number b){
-		Number * result = new Number[3]();
+	struct EGCD_Values {
+		Number a;
+		Number b;
+		Number c;
+	};
+
+	static EGCD_Values egcd(Number a, Number b){
+		EGCD_Values result;
 
 		if(a == 0){
-			result[0] = b;
-			result[1] = 0;
-			result[2] = 1;
+			result.a = b;
+			result.b = 0;
+			result.c = 1;
 			return result;
 		}
 
-		Number * inner = egcd(b % a, a);
-		result[0] = inner[0];
-		result[1] = inner[2] - (b / a) * inner[1];
-		result[2] = inner[1];
-		delete[] inner;
+		EGCD_Values inner = egcd(b % a, a);
+		result.a = inner.a;
+		result.b = inner.c - (b / a) * inner.b;
+		result.c = inner.b;
 
 		return result;
 	}
 
 	static Number mod_inv(Number a, Number b){
-		Number * result = egcd(a, b);
+		EGCD_Values result = egcd(a, b);
 
-		a = result[0];
-		if(result[1] > b){
-			b = (result[1] + b) % b;
+		a = result.a;
+		if(result.b > b){
+			b = (result.b + b) % b;
 		} else {
-			b = result[1] % b;
+			b = result.b % b;
 		}
-
-		delete[] result;
 
 		if(a != 1){
 			// raise exception modular inverse does not exist
