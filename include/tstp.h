@@ -13,7 +13,7 @@ __BEGIN_SYS
 class TSTP_Common: public IEEE802_15_4
 {
 protected:
-    static const unsigned int RADIO_RANGE = 1700; // Approximated radio range of nodes, in centimeters
+    static const unsigned int RADIO_RANGE = 8000; // Approximated radio range of nodes, in centimeters
     static const bool drop_expired = true;
 
 public:
@@ -57,16 +57,18 @@ public:
 		GDH_SETUP_FIRST = 7,
 		GDH_SETUP_INTERMEDIATE = 8,
 		GDH_SETUP_LAST = 9,
-		GDH_ROUND = 10,
-		GDH_BROADCAST = 11,
-		GDH_RESPONSE = 12,
+		GDH_SETUP_LAST_FOLLOW = 10,
+		GDH_ROUND = 11,
+		GDH_BROADCAST = 12,
+		GDH_RESPONSE = 13,
     };
 
 	enum GDH_State {
-		GDH_WAITING_EXP = 0,
-		GDH_WAITING_POP = 1,
-		GDH_WAITING_FINAL = 2,
-		GDH_WAITING_GW = 3,
+		GDH_WAITING_NEXT = 0,
+		GDH_WAITING_EXP = 1,
+		GDH_WAITING_POP = 2,
+		GDH_WAITING_FINAL = 3,
+		GDH_WAITING_GW = 4,
 	};
 
 	enum GDH_Node_Type {
@@ -878,7 +880,7 @@ public:
         Region::Space _next;
         Parameters _parameters;
 		Group_Id _group_id;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -911,7 +913,7 @@ public:
         Region::Space _next;
         Parameters _parameters;
 		Group_Id _group_id;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -919,12 +921,12 @@ public:
     class GDH_Setup_Last: public Control
     {
     public:
-		GDH_Setup_Last(const Group_Id & group_id, const Region::Space & destination, const Parameters & parameters, const Simple_List<Region::Space> & next)
+		GDH_Setup_Last(const Group_Id & group_id, const Region::Space & destination, const Parameters & parameters, const Region::Space & next)
         : Control(GDH_SETUP_LAST, 0, 0, now(), here(), here()), _destination(destination), _next(next), _parameters(parameters), _group_id(group_id){ }
 
 		const Group_Id group_id() { return _group_id; }
 
-		const Simple_List<Region::Space> & next() { return _next; }
+		const Region::Space & next() { return _next; }
 
 		const Region::Space & destination() { return _destination; }
 
@@ -942,12 +944,46 @@ public:
 
     private:
 		Region::Space _destination;
-        Simple_List<Region::Space> _next; //TODO GDH Should we use something else instead of a linked list?
+        Region::Space _next; //TODO GDH Should we use something else instead of a linked list?
         Parameters _parameters;
 		Group_Id _group_id;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
-    };
+    } ;
+
+	// Group Diffie-Hellman setup last node follow Security Bootstrap Control Message
+    class GDH_Setup_Last_Follow: public Control
+    {
+    public:
+		GDH_Setup_Last_Follow(const Group_Id & group_id, const Region::Space & destination, const Region::Space & next, bool finished)
+        : Control(GDH_SETUP_LAST, 0, 0, now(), here(), here()), _destination(destination), _next(next), _group_id(group_id), _finished(finished){ }
+
+		const Group_Id group_id() { return _group_id; }
+
+		const Region::Space & next() { return _next; }
+
+		const Region::Space & destination() { return _destination; }
+
+		const bool & finished() { return _finished; }
+
+        friend Debug & operator<<(Debug & db, const GDH_Setup_Last_Follow & m) {
+			//not printing next
+            db << reinterpret_cast<const Control &>(m) << ",n=" << m._next << ",f=" << m._finished;
+            return db;
+        }
+        friend OStream & operator<<(OStream & db, const GDH_Setup_Last_Follow & m) {
+            db << reinterpret_cast<const Control &>(m) << ",n=" << m._next << ",f=" << m._finished;
+            return db;
+        }
+
+    private:
+		Region::Space _destination;
+        Region::Space _next;
+		Group_Id _group_id;
+		bool _finished;
+        CRC _crc; //What is CRC? Do we need this here?
+    //} __attribute__((packed)); // TODO
+    } ;
 
 	// Group Diffie-Hellman round Security Bootstrap Control Message
     class GDH_Round: public Control
@@ -976,7 +1012,7 @@ public:
 		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -1007,7 +1043,7 @@ public:
 		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -1038,7 +1074,7 @@ public:
 		Region::Space _destination;
 		Group_Id _group_id;
 		Round_Key _round_key;
-        //CRC _crc; //What is CRC? Do we need this here?
+        CRC _crc; //What is CRC? Do we need this here?
     //} __attribute__((packed)); // TODO
     };
 
@@ -1300,7 +1336,7 @@ public:
         typedef Radio::Timer::Time_Stamp Time_Stamp;
         typedef Radio::Timer::Offset Offset;
 
-        static const unsigned int SYNC_PERIOD = 300000000; // TODO
+        static const unsigned int SYNC_PERIOD = 12500000; // For 0.5ms maximum drift
 
     public:
         Timekeeper() {
@@ -1373,7 +1409,9 @@ public:
         GDH_Security() {
             db<TSTP>(TRC) << "TSTP::GDH_Security()" << endl;
         }
-        ~GDH_Security();
+        ~GDH_Security() {
+            db<TSTP>(TRC) << "TSTP::~GDH_Security()" << endl;
+		}
 
         void bootstrap();
 
@@ -1706,7 +1744,12 @@ public:
     private:
         static int life_keeper() {
             while(true) {
-                if(!(TSTP::Locator::synchronized() && TSTP::Timekeeper::synchronized() && TSTP::Router::synchronized() && TSTP::Security::synchronized())) {
+                if((TSTP::here() == TSTP::sink())
+                    || !(TSTP::Locator::synchronized()
+                        && TSTP::Timekeeper::synchronized()
+                        && TSTP::Router::synchronized()
+                        /*//TODOGDH//&& TSTP::GDH_Security::synchronized())*/
+                        /*&& TSTP::Security::synchronized())*/)) {
                     db<TSTP>(TRC) << "TSTP::Life_Keeper: sending keep alive message" << endl;
                     TSTP::keep_alive();
                 }
@@ -1793,27 +1836,31 @@ private:
                         return buf->frame()->data<Epoch>()->destination();
                     }
 					case GDH_SETUP_FIRST: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						Region::Space destination = buf->frame()->data<GDH_Setup_First>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_SETUP_INTERMEDIATE: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						Region::Space destination = buf->frame()->data<GDH_Setup_Intermediate>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_SETUP_LAST: {
 						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
+					case GDH_SETUP_LAST_FOLLOW: {
+						Region::Space destination = buf->frame()->data<GDH_Setup_Last_Follow>()->destination();
+						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
+					}
 					case GDH_ROUND: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						Region::Space destination = buf->frame()->data<GDH_Round>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_BROADCAST: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						Region::Space destination = buf->frame()->data<GDH_Broadcast>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
 					case GDH_RESPONSE: {
-						Region::Space destination = buf->frame()->data<GDH_Setup_Last>()->destination();
+						Region::Space destination = buf->frame()->data<GDH_Response>()->destination();
 						return Region(destination.center, destination.radius, buf->frame()->data<Header>()->time(), -1); //TODO is -1 okay?
 					}
                 }
@@ -1829,7 +1876,7 @@ private:
         Keep_Alive * keep_alive = new (buf->frame()->data<Keep_Alive>()) Keep_Alive;
         marshal(buf);
         buf->deadline = now() + Life_Keeper::PERIOD;
-        db<TSTP>(INF) << "TSTP::keep_alive():keep_alive = " << keep_alive << " => " << (*keep_alive) << endl;
+        db<TSTP>(INF) << "TSTP::keep_alive():keep_alive = " << keep_alive << " => " << (*keep_alive) <<  " to " << TSTP::destination(buf) << endl;
         _nic->send(buf);
     }
 

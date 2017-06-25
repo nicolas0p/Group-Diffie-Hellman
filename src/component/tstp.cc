@@ -262,6 +262,7 @@ Shared_Key TSTP::GDH_Security::_GDH_key;
 Group_Id TSTP::GDH_Security::begin_group_diffie_hellman(Simple_List<Region::Space> nodes)
 {
     db<TSTP>(TRC) << "TSTP::GDH_Security::begin_group_diffie_hellman()" << endl;
+    kout << "TSTP::GDH_Security::begin_group_diffie_hellman()" << endl;
 
 	Group_Id group_id = 1/*TODO GDH random?*/;
 
@@ -276,17 +277,29 @@ Group_Id TSTP::GDH_Security::begin_group_diffie_hellman(Simple_List<Region::Spac
 	Region::Space *last = nodes.remove_tail()->object();
 
 	auto gw = Region::Space(TSTP::here());
-	List_Elements::Singly_Linked<Region::Space> gateway = List_Elements::Singly_Linked<Region::Space>(&gw);
-	nodes.insert(&gateway);
 
 	Buffer* resp = TSTP::alloc(sizeof(GDH_Setup_Last));
-	new (resp->frame()) GDH_Setup_Last(group_id, *last, params, nodes);
+	new (resp->frame()) GDH_Setup_Last(group_id, *last, params, gw);
 	TSTP::marshal(resp);
+	kout << "Sending Setup Last to " << *last << " with next: " << gw << endl;
 	TSTP::_nic->send(resp);
 
-	nodes.remove(&gateway);
-
 	Region::Space* first = nodes.remove_head()->object();
+
+	for(auto it = nodes.begin(); it; it++) {
+		resp = TSTP::alloc(sizeof(GDH_Setup_Last_Follow));
+		new (resp->frame()) GDH_Setup_Last_Follow(group_id, *last, *it->object(), false);
+		TSTP::marshal(resp);
+		kout << "Sending GDH Setup Last Follow to "<< *last << " with next = "<< *it->object() << ", " << false << endl;
+		TSTP::_nic->send(resp);
+	}
+
+	resp = TSTP::alloc(sizeof(GDH_Setup_Last_Follow));
+	new (resp->frame()) GDH_Setup_Last_Follow(group_id, *last, *first, true);
+	TSTP::marshal(resp);
+	kout << "Sending GDH Setup Last Follow to "<< *last << " with next = "<< *first << ", " << true << endl;
+	TSTP::_nic->send(resp);
+
 	Region::Space* next = last;
 	if(nodes.size() > 0) {
 		for(auto it = nodes.begin(); it; it++) {
@@ -294,6 +307,7 @@ Group_Id TSTP::GDH_Security::begin_group_diffie_hellman(Simple_List<Region::Spac
 			Region::Space *current = it->object();
 			new (resp->frame()) GDH_Setup_Intermediate(group_id, *current, params, *next);
 			TSTP::marshal(resp);
+			kout << "Sending Setup Intermediate to " << *current << endl;
 			TSTP::_nic->send(resp);
 			next = current;
 		}
@@ -304,6 +318,7 @@ Group_Id TSTP::GDH_Security::begin_group_diffie_hellman(Simple_List<Region::Spac
 	resp = TSTP::alloc(sizeof(GDH_Setup_First));
 	new (resp->frame()) GDH_Setup_First(group_id, *first, params, *firsts_next);
 	TSTP::marshal(resp);
+	kout << "Sending Setup First to " << *first << endl;
 	TSTP::_nic->send(resp);
 
 	_GDH_state = GDH_WAITING_GW;
@@ -319,10 +334,16 @@ void TSTP::GDH_Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer 
 	}
 
 	db<TSTP>(TRC) << "TSTP::GDH_Security::update(): Control message received" << endl;
+	/*kout << "TSTP::GDH_Security::update(): Control message received" << endl;
+	kout << "Message type: " << buf->frame()->data<Control>()->subtype() << endl;*/
+
+	auto author = buf->frame()->data<Header>()->origin();
 
 	switch(buf->frame()->data<Control>()->subtype()) {
 		case GDH_SETUP_FIRST: {
 			if(TSTP::here() != TSTP::sink()) {
+				db<TSTP>(TRC) << "TSTP::GDH_Security::update(): GDH SETUP FIRST message received" << endl;
+				kout << "TSTP::GDH_Security::update(): GDH SETUP FIRST message received from "  << author << endl;
 				GDH_Setup_First* message = buf->frame()->data<GDH_Setup_First>();
 				Region::Space next = message->next();
 				_gdh = Group_Diffie_Hellman(message->parameters());
@@ -339,6 +360,8 @@ void TSTP::GDH_Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer 
 		} break;
 		case GDH_SETUP_INTERMEDIATE: {
 			if(TSTP::here() != TSTP::sink()) {
+				db<TSTP>(TRC) << "TSTP::GDH_Security::update(): GDH SETUP INTERMEDIATE message received" << endl;
+				kout << "TSTP::GDH_Security::update(): GDH SETUP INTERMEDIATE message received from " << author << endl;
 				GDH_Setup_Intermediate* message = buf->frame()->data<GDH_Setup_Intermediate>();
 				_gdh = Group_Diffie_Hellman(message->parameters());
 				_GDH_next = Simple_List<Region::Space>(); //only correct for the first group id
@@ -350,17 +373,35 @@ void TSTP::GDH_Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer 
 		} break;
 		case GDH_SETUP_LAST: {
 			if(TSTP::here() != TSTP::sink()) {
+				db<TSTP>(TRC) << "TSTP::GDH_Security::update(): GDH SETUP LAST message received" << endl;
 				GDH_Setup_Last* message = buf->frame()->data<GDH_Setup_Last>();
-				_GDH_next = message->next(); //its a list, how to do this transparently?
+				kout << "TSTP::GDH_Security::update(): GDH SETUP LAST message received from " << author << " with next = " << message->next() << endl;
+				List_Elements::Singly_Linked<Region::Space> *next = new List_Elements::Singly_Linked<Region::Space>(new Region::Space(message->next()));
+				_GDH_next.insert(next);
 				_gdh = Group_Diffie_Hellman(message->parameters());
 				_GDH_node_type = GDH_LAST;
-				_GDH_state = GDH_WAITING_EXP; //this node is waiting to exponentiate the round key
+				_GDH_state = GDH_WAITING_NEXT; //this node is waiting to receive all his next nodes
+			}
+		} break;
+		case GDH_SETUP_LAST_FOLLOW: {
+			if(TSTP::here() != TSTP::sink() && _GDH_node_type == GDH_LAST && _GDH_state == GDH_WAITING_NEXT) {
+				db<TSTP>(TRC) << "TSTP::GDH_Security::update(): GDH SETUP LAST FOLLOW message received" << endl;
+				GDH_Setup_Last_Follow* message = buf->frame()->data<GDH_Setup_Last_Follow>();
+				kout << "TSTP::GDH_Security::update(): GDH SETUP LAST FOLLOW message received with next = " << message->next() << ", " << message->finished() << " from " << author << endl;
+				List_Elements::Singly_Linked<Region::Space> *next = new List_Elements::Singly_Linked<Region::Space>(new Region::Space(message->next()));
+				_GDH_next.insert(next);
+				if(message->finished()) {
+					_GDH_state = GDH_WAITING_EXP;
+					kout << "Last node changed to state GDH WAITING EXP";
+				}
 			}
 		} break;
 		case GDH_ROUND: {
 			GDH_Round * message = buf->frame()->data<GDH_Round>();
 			Round_Key round_key = message->round_key();
 			if(TSTP::here() != TSTP::sink()) {
+				db<TSTP>(TRC) << "TSTP::GDH_Security::update(): GDH ROUND message received" << endl;
+				kout << "TSTP::GDH_Security::update(): GDH ROUND message received from " << author << endl;
 				switch(_GDH_node_type) {
 					case GDH_INTERMEDIATE: {
 						//calculate new partial key and send to next
@@ -373,12 +414,15 @@ void TSTP::GDH_Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer 
 						_GDH_state = GDH_WAITING_POP;
 					} break;
 					case GDH_LAST: {
+						kout << "Last node received GDH_ROUND" << endl;
 						//we will want the old round key here
 						Round_Key my_key = _gdh.insert_key(round_key);
 						Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
 						new (resp->frame()) GDH_Response(message->group_id(), TSTP::sink(), round_key);
 						TSTP::marshal(resp);
+						kout << "Last node sent GDH_RESPONSE with round key(" << round_key << ") to the gateway" << endl;
 						TSTP::_nic->send(resp);
+						_GDH_state = GDH_WAITING_FINAL;
 						//send GDH_RESPONSE with round_key
 						for(auto next_el = _GDH_next.begin(); next_el != _GDH_next.end(); next_el++) {
 							resp = TSTP::alloc(sizeof(GDH_Broadcast));
@@ -386,6 +430,7 @@ void TSTP::GDH_Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer 
 							new (resp->frame()) GDH_Broadcast(message->group_id(), *next, my_key);
 							TSTP::marshal(resp);
 							TSTP::_nic->send(resp);
+							kout << "Last node sent GDH_BROADCAST with my_key(" << my_key << ") to " << *next << endl;
 						}
 						//send GDH_BROADCAST with my_key
 					} break;
@@ -396,31 +441,41 @@ void TSTP::GDH_Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer 
 		case GDH_BROADCAST: {
 			//can be received from two nodes. Last and gateway
 			GDH_Broadcast* message = buf->frame()->data<GDH_Broadcast>();
+			db<TSTP>(TRC) << "TSTP::GDH_Security::update(): GDH BROADCAST message received" << endl;
+			kout << "TSTP::GDH_Security::update(): GDH BROADCAST message received from " << author << endl;
 			if(TSTP::here() != TSTP::sink()) {
 				if(_GDH_state == GDH_WAITING_POP) {
 					Round_Key round_key = message->round_key();
 					round_key = _gdh.remove_key(round_key);
 					Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
-					new (resp->frame()) GDH_Broadcast(message->group_id(), TSTP::sink(), round_key);
+					new (resp->frame()) GDH_Response(message->group_id(), TSTP::sink(), round_key);
 					TSTP::marshal(resp);
+					kout << "Sending GDH Response with round key(" << round_key << ") to " << TSTP::sink() << endl;
 					TSTP::_nic->send(resp);
 					_GDH_state = GDH_WAITING_FINAL;
 				} else if(_GDH_state == GDH_WAITING_FINAL) {
 					Round_Key round_key = message->round_key();
 					round_key = _gdh.insert_key(round_key);
 					_GDH_key = round_key; //final key!
+					kout << "We calculated the final key! key = " << _GDH_key << endl;
 				}
+			} else { /*gateway*/
+				_GDH_key = _gdh.insert_key(message->round_key());
+				kout << "Gateway calculated his final key! Key = " << _GDH_key << endl;
 			}
 		} break;
 		case GDH_RESPONSE: {
 			if(TSTP::here() == TSTP::sink()) {
+				db<TSTP>(TRC) << "TSTP::GDH_Security::update(): GDH RESPONSE message received from " << author << endl;
+				kout << "TSTP::GDH_Security::update(): GDH RESPONSE message received from " << author << endl;
 				GDH_Response* message = buf->frame()->data<GDH_Response>();
 				Region::Space origin = buf->frame()->data<Header>()->origin(); //source of the message. Address
 				Round_Key round_key = message->round_key();
 				round_key = _gdh.insert_key(round_key);
-				Buffer* resp = TSTP::alloc(sizeof(GDH_Response));
+				Buffer* resp = TSTP::alloc(sizeof(GDH_Broadcast));
 				new (resp->frame()) GDH_Broadcast(message->group_id(), origin, round_key);
 				TSTP::marshal(resp);
+				kout << "Sending GDH Broadcast with round key(" << round_key << ") to " << origin << endl;
 				TSTP::_nic->send(resp);
 			}
 		} break;
@@ -782,6 +837,27 @@ void TSTP::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)
                     db<TSTP>(INF) << "TSTP::update: Epoch: adjusted epoch Space-Time to: " << _global_coordinates << ", " << _epoch << endl;
                 }
             } break;
+			case GDH_SETUP_FIRST:
+                db<TSTP>(INF) << "TSTP::update: GDH_Setup_First: " << *buf->frame()->data<GDH_Setup_First>() << endl;
+                break;
+			case GDH_SETUP_INTERMEDIATE:
+                db<TSTP>(INF) << "TSTP::update: GDH_Setup_Intermediate: " << *buf->frame()->data<GDH_Setup_Intermediate>() << endl;
+                break;
+			case GDH_SETUP_LAST:
+                db<TSTP>(INF) << "TSTP::update: GDH_Setup_Last: " << *buf->frame()->data<GDH_Setup_Last>() << endl;
+                break;
+			case GDH_SETUP_LAST_FOLLOW:
+                db<TSTP>(INF) << "TSTP::update: GDH_Setup_Last_Follow: " << *buf->frame()->data<GDH_Setup_Last>() << endl;
+				break;
+			case GDH_ROUND:
+                db<TSTP>(INF) << "TSTP::update: GDH_Round: " << *buf->frame()->data<GDH_Round>() << endl;
+                break;
+			case GDH_BROADCAST:
+                db<TSTP>(INF) << "TSTP::update: GDH_Broadcast: " << *buf->frame()->data<GDH_Broadcast>() << endl;
+                break;
+			case GDH_RESPONSE:
+                db<TSTP>(INF) << "TSTP::update: GDH_Response: " << *buf->frame()->data<GDH_Response>() << endl;
+                break;
             default:
                 db<TSTP>(WRN) << "TSTP::update: Unrecognized Control subtype: " << buf->frame()->data<Control>()->subtype() << endl;
                 break;
