@@ -142,7 +142,7 @@ void TSTP::Locator::bootstrap()
     //        _here = Coordinates(-970, -970, 350);
     //    else if(!memcmp(Machine::id(), "\x00\x4b\x12\x00\xdc\xaf\x0d\x06", 8)) // Water 4 // OK
     //        _here = Coordinates(-1020, -870, 350);
-    //    else if(!memcmp(Machine::id(), "\x00\x4b\x12\x00\x02\x0b\x0d\x06", 8)) // Router 0 
+    //    else if(!memcmp(Machine::id(), "\x00\x4b\x12\x00\x02\x0b\x0d\x06", 8)) // Router 0
     //        _here = Coordinates(610, 1700, 550);
     //    else if(!memcmp(Machine::id(), "\x00\x4b\x12\x00\xe7\x83\x0d\x06", 8)) // Water 5
     //        _here = Coordinates(710, 2800, 350);
@@ -225,6 +225,13 @@ void TSTP::GDH_Security::bootstrap()
     TSTP::_nic->attach(this, NIC::TSTP);
 }
 
+void TSTP::Messages_Statistic::bootstrap()
+{
+    db<TSTP>(TRC) << "TSTP::Messages_Statistic::bootstrap()" << endl;
+
+    TSTP::_nic->attach(this, NIC::TSTP);
+}
+
 void TSTP::Security::bootstrap()
 {
     db<TSTP>(TRC) << "TSTP::Security::bootstrap()" << endl;
@@ -251,6 +258,7 @@ void TSTP::init(const NIC & nic)
     TSTP::Timekeeper * timekeeper = new (SYSTEM) TSTP::Timekeeper;
     TSTP::Router * router = new (SYSTEM) TSTP::Router;
     TSTP::GDH_Security * gdh_security = new (SYSTEM) TSTP::GDH_Security;
+    TSTP::Messages_Statistic * messages_statistic = new (SYSTEM) TSTP::Messages_Statistic;
     //TSTP::Security * security = new (SYSTEM) TSTP::Security;
     TSTP * tstp = new (SYSTEM) TSTP;
 
@@ -258,6 +266,7 @@ void TSTP::init(const NIC & nic)
     timekeeper->bootstrap();
     router->bootstrap();
     gdh_security->bootstrap();
+    messages_statistic->bootstrap();
     //security->bootstrap();
 
     _nic->attach(tstp, NIC::TSTP);

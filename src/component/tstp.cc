@@ -434,6 +434,9 @@ void TSTP::GDH_Security::marshal(Buffer * buf)
 }
 
 int TSTP::Messages_Statistic::_oldest_sample_index = 0;
+TSTP::Messages_Statistic::Messages_Count TSTP::Messages_Statistic::_windows[WINDOWS_MAX_SIZE];
+TSTP::Messages_Statistic::Messages_Count TSTP::Messages_Statistic::_current_sample_messages_count = 0;
+TSTP::Time TSTP::Messages_Statistic::_sample_start_time = 0;
 
 // Methods
 void TSTP::Security::update(NIC::Observed * obs, NIC::Protocol prot, Buffer * buf)

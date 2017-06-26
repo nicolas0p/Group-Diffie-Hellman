@@ -1403,11 +1403,13 @@ public:
 
     friend class TSTP;
 
+
     public:
         Messages_Statistic() {
             db<TSTP>(TRC) << "TSTP::Messages_Statistic()" << endl;
         }
-        ~Messages_Statistic();
+
+        ~Messages_Statistic() {}
 
         void bootstrap();
 
@@ -1415,20 +1417,28 @@ public:
 
         static void marshal(Buffer * buf);
 
-        void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf) { on_message_received(); }
+        void update(NIC::Observed * obs, NIC::Protocol prot, NIC::Buffer * buf) {}
 
-        void update_test() { on_message_received(); }
+        static void update_test() { on_message_received(); }
 
-        int messages_count_average();
+        static int messages_count_average() {
+          adjust_sample_and_windows();
+
+          int i;
+          double sum = 0;
+          for (i = 0; i < WINDOWS_MAX_SIZE; i++) {
+            sum += _windows[i];
+          }
+
+          return sum / WINDOWS_MAX_SIZE;
+        }
 
     // private:
-      typedef Clock::Second Time;
       typedef int Messages_Count;
 
-      static const int WINDOWS_MAX_SIZE = 10;
-      static const Time SAMPLE_TIME = 5;
+      static const int WINDOWS_MAX_SIZE = 5;
+      static const Time SAMPLE_TIME = 5000000;
 
-      static Clock clock;
       static Messages_Count _windows[WINDOWS_MAX_SIZE];
       static int _oldest_sample_index;
       static Messages_Count _current_sample_messages_count;
@@ -1441,15 +1451,17 @@ public:
       }
 
       static Time adjust_sample_and_windows() {
-        const Time clock_now = clock.now();
+        const Time clock_now = TSTP::now();
+        db<TSTP>(ERR) << "now= " << TSTP::now() << endl;
         const Time time_since_last_window = clock_now - _sample_start_time;
 
         Time windows_since_last = time_since_last_window / SAMPLE_TIME;
-        
+
         if(windows_since_last > 0) {
             replace_oldest_sample(_current_sample_messages_count);
             _current_sample_messages_count = 0;
         }
+
         while (windows_since_last > 1) {
           replace_oldest_sample(0);
           --windows_since_last;
@@ -1463,7 +1475,7 @@ public:
       static void replace_oldest_sample(Messages_Count sample_messages_count) {
           _windows[_oldest_sample_index] = sample_messages_count;
 
-          _oldest_sample_index = (_oldest_sample_index + 1) % WINDOWS_MAX_SIZE; 
+          _oldest_sample_index = (_oldest_sample_index + 1) % WINDOWS_MAX_SIZE;
       }
     };
 
