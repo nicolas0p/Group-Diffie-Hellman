@@ -14,6 +14,7 @@ void create_window(int messages_count) {
       TSTP::Messages_Statistic::update_test();
     }
 
+    cout << "now= " << TSTP::now() << endl;
     cout << "sample_start_time= " << TSTP::Messages_Statistic::_sample_start_time << endl;
     cout << "messages_count= " << TSTP::Messages_Statistic::_current_sample_messages_count << endl;
 

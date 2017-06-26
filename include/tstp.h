@@ -1452,7 +1452,7 @@ public:
 
       static Time adjust_sample_and_windows() {
         const Time clock_now = TSTP::now();
-        db<TSTP>(ERR) << "now= " << TSTP::now() << endl;
+        // db<TSTP>(ERR) << "now= " << TSTP::now() << endl;
         const Time time_since_last_window = clock_now - _sample_start_time;
 
         Time windows_since_last = time_since_last_window / SAMPLE_TIME;
@@ -1921,8 +1921,9 @@ private:
         Locator::marshal(buf);
         Timekeeper::marshal(buf);
         Router::marshal(buf);
-		GDH_Security::marshal(buf);
-		Security::marshal(buf);
+		    GDH_Security::marshal(buf);
+        Messages_Statistic::marshal(buf);
+		    Security::marshal(buf);
     }
 
     static Buffer * alloc(unsigned int size) {
