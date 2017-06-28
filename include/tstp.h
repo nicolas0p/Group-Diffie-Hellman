@@ -1433,11 +1433,15 @@ public:
           return sum / WINDOWS_MAX_SIZE;
         }
 
+	static bool is_network_overloaded() {
+	   return messages_count_average() > Traits<TSTP>::OVERLOAD_THRESHOLD;
+	}
+
     private:
       typedef int Messages_Count;
 
-      static const int WINDOWS_MAX_SIZE = 5;
-      static const Time SAMPLE_TIME = 1000000;
+      static const int WINDOWS_MAX_SIZE = Traits<TSTP>::WINDOWS_MAX_SIZE;
+      static const Time SAMPLE_TIME = Traits<TSTP>::SAMPLE_TIME_SECONDS;
 
       static Messages_Count _windows[WINDOWS_MAX_SIZE];
       static int _oldest_sample_index;

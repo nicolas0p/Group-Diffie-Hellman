@@ -191,6 +191,10 @@ template<> struct Traits<TSTP>: public Traits<Network>
 {
     static const bool enabled = NETWORKS::Count<TSTP>::Result;
     static const bool sink = false;
+
+    static const int WINDOWS_MAX_SIZE = 5;
+    static const int SAMPLE_TIME_SECONDS = 5;
+    static const int OVERLOAD_THRESHOLD = 100; 
 };
 
 template<> template <typename S> struct Traits<Smart_Data<S>>: public Traits<Network>
