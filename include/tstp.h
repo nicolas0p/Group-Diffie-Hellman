@@ -1433,11 +1433,11 @@ public:
           return sum / WINDOWS_MAX_SIZE;
         }
 
-    // private:
+    private:
       typedef int Messages_Count;
 
       static const int WINDOWS_MAX_SIZE = 5;
-      static const Time SAMPLE_TIME = 5000000;
+      static const Time SAMPLE_TIME = 1000000;
 
       static Messages_Count _windows[WINDOWS_MAX_SIZE];
       static int _oldest_sample_index;
@@ -1450,14 +1450,13 @@ public:
         ++_current_sample_messages_count;
       }
 
-      static Time adjust_sample_and_windows() {
+      static void adjust_sample_and_windows() {
         const Time clock_now = TSTP::now();
-        // db<TSTP>(ERR) << "now= " << TSTP::now() << endl;
         const Time time_since_last_window = clock_now - _sample_start_time;
 
         Time windows_since_last = time_since_last_window / SAMPLE_TIME;
-
-        if(windows_since_last > 0) {
+	      
+	if(windows_since_last > 0) {
             replace_oldest_sample(_current_sample_messages_count);
             _current_sample_messages_count = 0;
         }
@@ -1468,8 +1467,6 @@ public:
         }
 
         _sample_start_time = clock_now - time_since_last_window % SAMPLE_TIME;
-
-        return time_since_last_window > SAMPLE_TIME;
       }
 
       static void replace_oldest_sample(Messages_Count sample_messages_count) {
